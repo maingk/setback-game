@@ -242,24 +242,29 @@ body {
 }
 
 .card {
-    width: 60px;
-    height: 84px;
+    width: 70px;
+    height: 98px;
     background: white;
     border-radius: 8px;
     border: 2px solid #333;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     color: #333;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
     position: relative;
+    text-align: center;
+    line-height: 1.2;
+    padding: 4px;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
+    box-shadow: 2px 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .card.red {
@@ -269,6 +274,15 @@ body {
 .card.playable {
     border-color: #2ecc71;
     box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.card.disabled:hover {
+    transform: none;
 }
 
 .game-actions {
@@ -297,17 +311,40 @@ body {
     color: white;
     cursor: pointer;
     font-size: 16px;
-    transition: background 0.3s;
+    transition: background 0.3s, opacity 0.3s;
 }
 
 .bid-btn:hover, .trump-btn:hover {
     background: #2980b9;
 }
 
+.bid-btn:disabled, .trump-btn:disabled {
+    background: #7f8c8d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.bid-btn:disabled:hover, .trump-btn:disabled:hover {
+    background: #7f8c8d;
+}
+
 .trump-btn {
     font-size: 24px;
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
+}
+
+.trump-btn[data-suit="hearts"], .trump-btn[data-suit="diamonds"] {
+    color: #e74c3c;
+}
+
+.game-phase-indicator {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: bold;
 }
 
 .game-messages {

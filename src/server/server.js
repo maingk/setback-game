@@ -4,6 +4,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const { SetbackGame } = require('./gameLogic');
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +24,7 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 // Game rooms storage (in production, use Redis or database)
 const gameRooms = new Map();
+const activeGames = new Map(); // Store actual game instances
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -76,9 +78,72 @@ io.on('connection', (socket) => {
         
         // Check if all players are ready
         if (room.players.length === 4 && room.players.every(p => p.ready)) {
-          // TODO: Start game
-          io.to(socket.roomId).emit('gameStart', 'Game starting!');
+          // Create and start new game
+          const game = new SetbackGame(socket.roomId, room.players);
+          activeGames.set(socket.roomId, game);
+          
+          const gameState = game.startNewHand();
+          
+          // Send game state to all players with their individual hands
+          room.players.forEach((player, index) => {
+            const playerGameState = game.getPlayerGameState(index);
+            io.to(player.id).emit('gameStarted', playerGameState);
+          });
         }
+      }
+    }
+  });
+
+  // Handle bidding
+  socket.on('placeBid', (bidAmount) => {
+    const game = activeGames.get(socket.roomId);
+    if (game) {
+      try {
+        const room = gameRooms.get(socket.roomId);
+        const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        
+        if (playerIndex === -1) {
+          socket.emit('gameError', 'Player not found');
+          return;
+        }
+        
+        const gameState = game.placeBid(playerIndex, bidAmount);
+        
+        // Send updated game state to all players
+        room.players.forEach((player, index) => {
+          const playerGameState = game.getPlayerGameState(index);
+          io.to(player.id).emit('gameStateUpdate', playerGameState);
+        });
+        
+      } catch (error) {
+        socket.emit('gameError', error.message);
+      }
+    }
+  });
+
+  // Handle trump selection
+  socket.on('selectTrump', (suit) => {
+    const game = activeGames.get(socket.roomId);
+    if (game) {
+      try {
+        const room = gameRooms.get(socket.roomId);
+        const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        
+        if (playerIndex === -1) {
+          socket.emit('gameError', 'Player not found');
+          return;
+        }
+        
+        const gameState = game.selectTrump(playerIndex, suit);
+        
+        // Send updated game state to all players
+        room.players.forEach((player, index) => {
+          const playerGameState = game.getPlayerGameState(index);
+          io.to(player.id).emit('gameStateUpdate', playerGameState);
+        });
+        
+      } catch (error) {
+        socket.emit('gameError', error.message);
       }
     }
   });
@@ -99,9 +164,10 @@ io.on('connection', (socket) => {
           message: `${socket.playerName} left the game`
         });
         
-        // Clean up empty rooms
+        // Clean up empty rooms and games
         if (room.players.length === 0) {
           gameRooms.delete(socket.roomId);
+          activeGames.delete(socket.roomId);
         }
       }
     }
@@ -111,6 +177,10 @@ io.on('connection', (socket) => {
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../public/index.html'));
+});
+
+app.get('/constants.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '../shared/constants.js'));
 });
 
 app.get('/health', (req, res) => {

@@ -50,6 +50,23 @@ class SetbackGame {
             this.showMessage(message, 'success');
             this.switchScreen('game');
         });
+
+        // Game events
+        this.socket.on('gameStarted', (gameState) => {
+            this.gameState = gameState;
+            this.switchScreen('game');
+            this.updateGameDisplay();
+            this.showMessage('Game started! Cards dealt.', 'success');
+        });
+
+        this.socket.on('gameStateUpdate', (gameState) => {
+            this.gameState = gameState;
+            this.updateGameDisplay();
+        });
+
+        this.socket.on('gameError', (message) => {
+            this.showMessage(message, 'error');
+        });
     }
     
     setupUIEventListeners() {
@@ -190,19 +207,133 @@ class SetbackGame {
     
     placeBid(bid) {
         console.log('Placing bid:', bid);
-        // TODO: Implement bidding logic
-        this.showMessage(`You bid ${bid}`, 'info');
+        this.socket.emit('placeBid', bid === 'pass' ? 'pass' : parseInt(bid));
     }
     
     selectTrump(suit) {
         console.log('Selecting trump:', suit);
-        // TODO: Implement trump selection logic
-        this.showMessage(`You selected ${suit} as trump`, 'info');
+        this.socket.emit('selectTrump', suit);
     }
     
     playCard(card) {
         console.log('Playing card:', card);
         // TODO: Implement card playing logic
+    }
+
+    updateGameDisplay() {
+        if (!this.gameState) return;
+
+        // Update scores
+        document.getElementById('team1Score').textContent = this.gameState.scores.team1;
+        document.getElementById('team2Score').textContent = this.gameState.scores.team2;
+
+        // Update trump and bid info
+        document.getElementById('trumpSuit').textContent = this.gameState.trump || '-';
+        document.getElementById('currentBid').textContent = 
+            this.gameState.currentBid.amount > 0 ? this.gameState.currentBid.amount : '-';
+
+        // Update player hand
+        this.displayPlayerHand();
+
+        // Show/hide game sections based on phase
+        this.updateGamePhase();
+    }
+
+    displayPlayerHand() {
+        const handContainer = document.getElementById('handCards');
+        handContainer.innerHTML = '';
+
+        if (!this.gameState.playerHand) return;
+
+        this.gameState.playerHand.forEach((card, index) => {
+            const cardElement = this.createCardElement(card, index);
+            handContainer.appendChild(cardElement);
+        });
+    }
+
+    createCardElement(card, index) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'card';
+        cardDiv.dataset.cardIndex = index;
+
+        // Add red color class for hearts and diamonds
+        if (card.suit === 'hearts' || card.suit === 'diamonds') {
+            cardDiv.classList.add('red');
+        }
+
+        // Set card content
+        if (card.rank === 'JOKER') {
+            cardDiv.textContent = 'JOKER';
+        } else {
+            const suitSymbols = {
+                'spades': '♠',
+                'hearts': '♥',
+                'diamonds': '♦',
+                'clubs': '♣'
+            };
+            cardDiv.textContent = `${card.rank}${suitSymbols[card.suit]}`;
+        }
+
+        // Add click handler for playing cards (TODO: implement)
+        cardDiv.addEventListener('click', () => {
+            console.log('Clicked card:', card);
+            // TODO: Implement card playing
+        });
+
+        return cardDiv;
+    }
+
+    updateGamePhase() {
+        const biddingSection = document.getElementById('biddingSection');
+        const trumpSelection = document.getElementById('trumpSelection');
+
+        // Hide all sections first
+        biddingSection.style.display = 'none';
+        trumpSelection.style.display = 'none';
+
+        // Show appropriate section based on game phase
+        switch (this.gameState.phase) {
+            case 'bidding':
+                biddingSection.style.display = 'block';
+                this.updateBiddingInterface();
+                break;
+            case 'trump_selection':
+                if (this.gameState.currentBid.player === this.gameState.playerIndex) {
+                    trumpSelection.style.display = 'block';
+                    this.showMessage('You won the bid! Choose trump suit.', 'success');
+                } else {
+                    const winnerName = this.gameState.players[this.gameState.currentBid.player].name;
+                    this.showMessage(`${winnerName} won the bid and is choosing trump.`, 'info');
+                }
+                break;
+            case 'playing':
+                this.showMessage('Playing phase started!', 'info');
+                break;
+        }
+    }
+
+    updateBiddingInterface() {
+        const bidButtons = document.querySelectorAll('.bid-btn');
+        const currentBid = this.gameState.currentBid.amount;
+        const isMyTurn = this.gameState.currentBidder === this.gameState.playerIndex;
+
+        bidButtons.forEach(btn => {
+            const bid = btn.dataset.bid;
+            
+            if (bid === 'pass') {
+                btn.disabled = !isMyTurn;
+            } else {
+                const bidValue = parseInt(bid);
+                btn.disabled = !isMyTurn || bidValue <= currentBid;
+            }
+        });
+
+        if (isMyTurn) {
+            this.showMessage('Your turn to bid!', 'info');
+        } else {
+            const currentBidderName = this.gameState.players[this.gameState.currentBidder].name;
+            this.showMessage(`${currentBidderName} is bidding...`, 'info');
+        }
     }
 }
 
