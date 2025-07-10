@@ -232,11 +232,74 @@ class SetbackGame {
         document.getElementById('currentBid').textContent = 
             this.gameState.currentBid.amount > 0 ? this.gameState.currentBid.amount : '-';
 
+        // Update current player info
+        this.updateCurrentPlayerInfo();
+
+        // Update team information
+        this.updateTeamInfo();
+
         // Update player hand
         this.displayPlayerHand();
 
         // Show/hide game sections based on phase
         this.updateGamePhase();
+    }
+
+    updateCurrentPlayerInfo() {
+        const currentPlayerName = document.getElementById('currentPlayerName');
+        
+        if (this.gameState.phase === 'bidding') {
+            const currentBidder = this.gameState.players[this.gameState.currentBidder];
+            currentPlayerName.textContent = currentBidder ? currentBidder.name : '-';
+        } else if (this.gameState.phase === 'playing') {
+            const currentPlayer = this.gameState.players[this.gameState.currentPlayer];
+            currentPlayerName.textContent = currentPlayer ? currentPlayer.name : '-';
+        } else {
+            currentPlayerName.textContent = '-';
+        }
+    }
+
+    updateTeamInfo() {
+        const team1Players = document.getElementById('team1Players');
+        const team2Players = document.getElementById('team2Players');
+        const team1Section = document.getElementById('team1Section');
+        const team2Section = document.getElementById('team2Section');
+        
+        // Clear existing content
+        team1Players.innerHTML = '';
+        team2Players.innerHTML = '';
+        
+        // Remove previous highlighting
+        team1Section.classList.remove('my-team');
+        team2Section.classList.remove('my-team');
+        
+        // Get current player's team
+        const myTeam = this.gameState.players[this.gameState.playerIndex]?.team;
+        
+        // Populate team rosters
+        this.gameState.players.forEach(player => {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'player-name';
+            playerDiv.textContent = player.name;
+            
+            // Highlight current user
+            if (player.name === this.playerName) {
+                playerDiv.classList.add('current-user');
+            }
+            
+            if (player.team === 'team1') {
+                team1Players.appendChild(playerDiv);
+            } else {
+                team2Players.appendChild(playerDiv);
+            }
+        });
+        
+        // Highlight the player's team
+        if (myTeam === 'team1') {
+            team1Section.classList.add('my-team');
+        } else if (myTeam === 'team2') {
+            team2Section.classList.add('my-team');
+        }
     }
 
     displayPlayerHand() {
@@ -261,17 +324,33 @@ class SetbackGame {
             cardDiv.classList.add('red');
         }
 
-        // Set card content
+        // Handle joker specially
         if (card.rank === 'JOKER') {
-            cardDiv.textContent = 'JOKER';
+            cardDiv.classList.add('joker');
+            cardDiv.innerHTML = '<div>JOKER</div>';
         } else {
+            // Create standard playing card layout
             const suitSymbols = {
                 'spades': '♠',
                 'hearts': '♥',
                 'diamonds': '♦',
                 'clubs': '♣'
             };
-            cardDiv.textContent = `${card.rank}${suitSymbols[card.suit]}`;
+            
+            const suit = suitSymbols[card.suit];
+            const rank = card.rank;
+            
+            cardDiv.innerHTML = `
+                <div class="rank-suit-top">
+                    <div class="rank">${rank}</div>
+                    <div class="suit">${suit}</div>
+                </div>
+                <div class="center-suit">${suit}</div>
+                <div class="rank-suit-bottom">
+                    <div class="rank">${rank}</div>
+                    <div class="suit">${suit}</div>
+                </div>
+            `;
         }
 
         // Add click handler for playing cards (TODO: implement)
