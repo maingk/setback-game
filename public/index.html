@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setback Card Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="screen">
+            <div class="login-container">
+                <h1>Setback Card Game</h1>
+                <div class="login-form">
+                    <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+                    <input type="text" id="roomId" placeholder="Room ID (optional)" maxlength="10">
+                    <button id="joinGameBtn">Join Game</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobbyScreen" class="screen hidden">
+            <div class="lobby-container">
+                <h2>Game Lobby</h2>
+                <div class="room-info">
+                    <p>Room ID: <span id="currentRoomId"></span></p>
+                    <p>Players: <span id="playerCount">0</span>/4</p>
+                </div>
+                
+                <div class="players-list">
+                    <h3>Players:</h3>
+                    <ul id="playersList"></ul>
+                </div>
+                
+                <div class="lobby-actions">
+                    <button id="readyBtn">Ready</button>
+                    <button id="leaveRoomBtn">Leave Room</button>
+                </div>
+                
+                <div class="game-messages">
+                    <div id="lobbyMessages"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen hidden">
+            <div class="game-container">
+                <div class="game-header">
+                    <div class="scores">
+                        <div class="team-score">
+                            <h3>Team 1</h3>
+                            <span id="team1Score">0</span>
+                        </div>
+                        <div class="game-info">
+                            <p>Trump: <span id="trumpSuit">-</span></p>
+                            <p>Bid: <span id="currentBid">-</span></p>
+                        </div>
+                        <div class="team-score">
+                            <h3>Team 2</h3>
+                            <span id="team2Score">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="game-board">
+                    <div class="played-cards" id="playedCards">
+                        <!-- Played cards will appear here -->
+                    </div>
+                </div>
+                
+                <div class="player-hand">
+                    <h3>Your Hand</h3>
+                    <div class="hand-cards" id="handCards">
+                        <!-- Player's cards will appear here -->
+                    </div>
+                </div>
+                
+                <div class="game-actions">
+                    <div class="bidding-section" id="biddingSection">
+                        <h3>Bidding</h3>
+                        <button class="bid-btn" data-bid="2">2</button>
+                        <button class="bid-btn" data-bid="3">3</button>
+                        <button class="bid-btn" data-bid="4">4</button>
+                        <button class="bid-btn" data-bid="5">5</button>
+                        <button class="bid-btn" data-bid="6">6</button>
+                        <button class="bid-btn" data-bid="pass">Pass</button>
+                    </div>
+                    
+                    <div class="trump-selection" id="trumpSelection">
+                        <h3>Choose Trump</h3>
+                        <button class="trump-btn" data-suit="spades">♠</button>
+                        <button class="trump-btn" data-suit="hearts">♥</button>
+                        <button class="trump-btn" data-suit="diamonds">♦</button>
+                        <button class="trump-btn" data-suit="clubs">♣</button>
+                    </div>
+                </div>
+                
+                <div class="game-messages">
+                    <div id="gameMessages"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

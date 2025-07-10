@@ -1,0 +1,122 @@
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../../public')));
+
+// Game rooms storage (in production, use Redis or database)
+const gameRooms = new Map();
+
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+
+  // Join game room
+  socket.on('joinRoom', (roomId, playerName) => {
+    socket.join(roomId);
+    socket.playerName = playerName;
+    socket.roomId = roomId;
+    
+    console.log(`${playerName} joined room ${roomId}`);
+    
+    // Initialize room if it doesn't exist
+    if (!gameRooms.has(roomId)) {
+      gameRooms.set(roomId, {
+        players: [],
+        gameState: null,
+        maxPlayers: 4
+      });
+    }
+    
+    const room = gameRooms.get(roomId);
+    
+    // Add player if room isn't full
+    if (room.players.length < room.maxPlayers) {
+      room.players.push({
+        id: socket.id,
+        name: playerName,
+        ready: false
+      });
+      
+      // Notify all players in room
+      io.to(roomId).emit('playerJoined', {
+        players: room.players,
+        message: `${playerName} joined the game`
+      });
+    } else {
+      socket.emit('roomFull', 'Room is full');
+    }
+  });
+
+  // Handle player ready state
+  socket.on('playerReady', () => {
+    const room = gameRooms.get(socket.roomId);
+    if (room) {
+      const player = room.players.find(p => p.id === socket.id);
+      if (player) {
+        player.ready = !player.ready;
+        io.to(socket.roomId).emit('playerReadyUpdate', room.players);
+        
+        // Check if all players are ready
+        if (room.players.length === 4 && room.players.every(p => p.ready)) {
+          // TODO: Start game
+          io.to(socket.roomId).emit('gameStart', 'Game starting!');
+        }
+      }
+    }
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+    
+    if (socket.roomId) {
+      const room = gameRooms.get(socket.roomId);
+      if (room) {
+        // Remove player from room
+        room.players = room.players.filter(p => p.id !== socket.id);
+        
+        // Notify remaining players
+        io.to(socket.roomId).emit('playerLeft', {
+          players: room.players,
+          message: `${socket.playerName} left the game`
+        });
+        
+        // Clean up empty rooms
+        if (room.players.length === 0) {
+          gameRooms.delete(socket.roomId);
+        }
+      }
+    }
+  });
+});
+
+// Routes
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/index.html'));
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'Server is running', rooms: gameRooms.size });
+});
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
