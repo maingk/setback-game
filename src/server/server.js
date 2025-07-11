@@ -123,6 +123,9 @@ io.on('connection', (socket) => {
 
   // Handle trump selection
   socket.on('selectTrump', (suit) => {
+    console.log('=== TRUMP SELECTION EVENT RECEIVED ===');
+    console.log('Suit selected:', suit);
+    
     const game = activeGames.get(socket.roomId);
     if (game) {
       try {
@@ -134,7 +137,45 @@ io.on('connection', (socket) => {
           return;
         }
         
+        console.log('Trump selection by player index:', playerIndex);
+        console.log('Current bid player:', game.currentBid.player);
+        console.log('Player name:', room.players[playerIndex].name);
+        
         const gameState = game.selectTrump(playerIndex, suit);
+        
+        console.log('After trump selection - current player:', gameState.currentPlayer);
+        console.log('Current player name:', room.players[gameState.currentPlayer].name);
+        
+        // Send updated game state to all players
+        room.players.forEach((player, index) => {
+          const playerGameState = game.getPlayerGameState(index);
+          console.log(`Sending to player ${index} (${player.name}): currentPlayer=${playerGameState.currentPlayer}, playerIndex=${index}`);
+          io.to(player.id).emit('gameStateUpdate', playerGameState);
+        });
+        
+      } catch (error) {
+        console.log('Error in trump selection:', error.message);
+        socket.emit('gameError', error.message);
+      }
+    } else {
+      console.log('No game found for room:', socket.roomId);
+    }
+  });
+
+  // Handle card playing
+  socket.on('playCard', (cardIndex) => {
+    const game = activeGames.get(socket.roomId);
+    if (game) {
+      try {
+        const room = gameRooms.get(socket.roomId);
+        const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        
+        if (playerIndex === -1) {
+          socket.emit('gameError', 'Player not found');
+          return;
+        }
+        
+        const gameState = game.playCard(playerIndex, cardIndex);
         
         // Send updated game state to all players
         room.players.forEach((player, index) => {

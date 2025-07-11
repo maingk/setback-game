@@ -206,6 +206,9 @@ class SetbackGame {
     }
     
     selectTrump(playerIndex, suit) {
+        console.log('selectTrump called with playerIndex:', playerIndex, 'suit:', suit);
+        console.log('this.currentBid.player:', this.currentBid.player);
+        
         if (this.phase !== GAME_PHASES.TRUMP_SELECTION) {
             throw new Error('Not in trump selection phase');
         }
@@ -219,10 +222,317 @@ class SetbackGame {
         }
         
         this.trump = suit;
-        this.currentPlayer = (this.currentDealer + 1) % 4; // Player to left of dealer leads
+        this.currentPlayer = this.currentBid.player; // Winning bidder leads first
+        console.log('Set currentPlayer to:', this.currentPlayer);
+        
         this.phase = GAME_PHASES.PLAYING;
+        this.trick = [];
+        this.currentTrick = [];
+        this.tricksWon = { team1: 0, team2: 0 };
+        this.trickNumber = 1;
+        
+        console.log('Returning from selectTrump with currentPlayer:', this.currentPlayer);
+        return this.getGameState();
+    }
+    
+    playCard(playerIndex, cardIndex) {
+        if (this.phase !== GAME_PHASES.PLAYING) {
+            throw new Error('Not in playing phase');
+        }
+        
+        if (playerIndex !== this.currentPlayer) {
+            throw new Error('Not your turn to play');
+        }
+        
+        const player = this.players[playerIndex];
+        if (cardIndex < 0 || cardIndex >= player.hand.length) {
+            throw new Error('Invalid card index');
+        }
+        
+        const card = player.hand[cardIndex];
+        
+        // Validate the play (follow suit rules)
+        if (!this.isValidPlay(card, player.hand)) {
+            throw new Error('Invalid play - must follow suit if possible');
+        }
+        
+        // Remove card from player's hand and add to current trick
+        player.hand.splice(cardIndex, 1);
+        this.currentTrick.push({
+            card: card,
+            player: playerIndex,
+            playerName: player.name
+        });
+        
+        // Add to all played cards for scoring
+        this.playedCards.push({
+            card: card,
+            player: playerIndex,
+            trick: this.trickNumber
+        });
+        
+        // Check if trick is complete (4 cards played)
+        if (this.currentTrick.length === 4) {
+            this.completeTrick();
+        } else {
+            // Move to next player
+            this.currentPlayer = (this.currentPlayer + 1) % 4;
+        }
         
         return this.getGameState();
+    }
+    
+    isValidPlay(card, hand) {
+        // If this is the first card of the trick, any card is valid
+        if (this.currentTrick.length === 0) {
+            return true;
+        }
+        
+        const leadCard = this.currentTrick[0].card;
+        const leadSuit = this.getEffectiveSuit(leadCard);
+        const playedSuit = this.getEffectiveSuit(card);
+        
+        // If playing the same suit as led, it's valid
+        if (playedSuit === leadSuit) {
+            return true;
+        }
+        
+        // If player has cards of the led suit, they must play them
+        const hasLeadSuit = hand.some(c => this.getEffectiveSuit(c) === leadSuit);
+        
+        // If they don't have the led suit, any card is valid
+        return !hasLeadSuit;
+    }
+    
+    getEffectiveSuit(card) {
+        // Joker is always trump
+        if (card.rank === RANKS.JOKER) {
+            return this.trump;
+        }
+        return card.suit;
+    }
+    
+    completeTrick() {
+        // Determine trick winner
+        const trickWinner = this.determineTrickWinner();
+        const winningTeam = this.players[trickWinner].team;
+        
+        // Add trick to completed tricks
+        this.trick.push({
+            cards: [...this.currentTrick],
+            winner: trickWinner,
+            winnerName: this.players[trickWinner].name,
+            winningTeam: winningTeam,
+            trickNumber: this.trickNumber
+        });
+        
+        // Update tricks won count
+        this.tricksWon[winningTeam]++;
+        
+        // Clear current trick
+        this.currentTrick = [];
+        
+        // Check if hand is complete (6 tricks)
+        if (this.trickNumber === 6) {
+            this.completeHand();
+        } else {
+            // Winner leads next trick
+            this.currentPlayer = trickWinner;
+            this.trickNumber++;
+        }
+    }
+    
+    determineTrickWinner() {
+        const leadCard = this.currentTrick[0];
+        const leadSuit = this.getEffectiveSuit(leadCard.card);
+        
+        let winningPlay = leadCard;
+        let winningValue = this.getCardValue(leadCard.card, leadSuit);
+        
+        // Check each subsequent card
+        for (let i = 1; i < this.currentTrick.length; i++) {
+            const currentPlay = this.currentTrick[i];
+            const currentValue = this.getCardValue(currentPlay.card, leadSuit);
+            
+            if (currentValue > winningValue) {
+                winningPlay = currentPlay;
+                winningValue = currentValue;
+            }
+        }
+        
+        return winningPlay.player;
+    }
+    
+    getCardValue(card, leadSuit) {
+        const cardSuit = this.getEffectiveSuit(card);
+        
+        // Trump cards always beat non-trump cards
+        if (cardSuit === this.trump && leadSuit !== this.trump) {
+            return 1000 + this.getTrumpRank(card);
+        }
+        
+        // If card matches lead suit or is trump when trump was led
+        if (cardSuit === leadSuit) {
+            if (cardSuit === this.trump) {
+                return 1000 + this.getTrumpRank(card);
+            } else {
+                return this.getRegularRank(card);
+            }
+        }
+        
+        // Card doesn't follow suit and isn't trump - can't win
+        return 0;
+    }
+    
+    getTrumpRank(card) {
+        if (card.rank === RANKS.JOKER) {
+            // Joker ranks between 10 and Jack, so it should have a higher value than 10
+            const jokerIndex = TRUMP_RANK_ORDER.indexOf(RANKS.JOKER);
+            return TRUMP_RANK_ORDER.length - jokerIndex; // Higher number = higher rank
+        }
+        const rankIndex = TRUMP_RANK_ORDER.indexOf(card.rank);
+        return TRUMP_RANK_ORDER.length - rankIndex; // Higher number = higher rank
+    }
+    
+    getRegularRank(card) {
+        const rankIndex = REGULAR_RANK_ORDER.indexOf(card.rank);
+        return REGULAR_RANK_ORDER.length - rankIndex; // Higher number = higher rank
+    }
+    
+    completeHand() {
+        this.phase = GAME_PHASES.SCORING;
+        
+        // Calculate the 6 points for this hand
+        const handPoints = this.calculateHandPoints();
+        
+        // Award points to teams
+        this.handScores.team1 = handPoints.team1;
+        this.handScores.team2 = handPoints.team2;
+        
+        // Add to total scores
+        this.scores.team1 += handPoints.team1;
+        this.scores.team2 += handPoints.team2;
+        
+        // Check if game is over (21 points)
+        if (this.scores.team1 >= GAME_SETTINGS.WINNING_SCORE || this.scores.team2 >= GAME_SETTINGS.WINNING_SCORE) {
+            this.phase = GAME_PHASES.GAME_OVER;
+        }
+        
+        return this.getGameState();
+    }
+    
+    calculateHandPoints() {
+        const points = { team1: 0, team2: 0 };
+        const trumpCards = this.playedCards.filter(pc => this.isTrump(pc.card));
+        
+        if (trumpCards.length === 0) {
+            // No trump played - only Game point available
+            points[this.calculateGamePoint()] += 1;
+            return points;
+        }
+        
+        // 1. HIGH - Highest trump played
+        const highTrump = this.findHighestTrump(trumpCards);
+        if (highTrump) {
+            const team = this.players[highTrump.player].team;
+            points[team] += 1;
+        }
+        
+        // 2. LOW - Lowest trump played  
+        const lowTrump = this.findLowestTrump(trumpCards);
+        if (lowTrump) {
+            const team = this.players[lowTrump.player].team;
+            points[team] += 1;
+        }
+        
+        // 3. JACK - Jack of trump (if played)
+        const jackOfTrump = trumpCards.find(pc => 
+            pc.card.suit === this.trump && pc.card.rank === RANKS.JACK
+        );
+        if (jackOfTrump) {
+            const team = this.players[jackOfTrump.player].team;
+            points[team] += 1;
+        }
+        
+        // 4. OFF-JACK - Jack of same color as trump (if captured)
+        const offJackTeam = this.calculateOffJackPoint();
+        if (offJackTeam) {
+            points[offJackTeam] += 1;
+        }
+        
+        // 5. JOKER - The joker (if played)
+        const joker = this.playedCards.find(pc => pc.card.rank === RANKS.JOKER);
+        if (joker) {
+            const team = this.players[joker.player].team;
+            points[team] += 1;
+        }
+        
+        // 6. GAME - Most game points from captured cards
+        const gameTeam = this.calculateGamePoint();
+        points[gameTeam] += 1;
+        
+        return points;
+    }
+    
+    findHighestTrump(trumpCards) {
+        let highest = null;
+        let highestValue = -1;
+        
+        trumpCards.forEach(pc => {
+            const value = this.getTrumpRank(pc.card);
+            if (value > highestValue) {
+                highestValue = value;
+                highest = pc;
+            }
+        });
+        
+        return highest;
+    }
+    
+    findLowestTrump(trumpCards) {
+        let lowest = null;
+        let lowestValue = 999;
+        
+        trumpCards.forEach(pc => {
+            const value = this.getTrumpRank(pc.card);
+            if (value < lowestValue) {
+                lowestValue = value;
+                lowest = pc;
+            }
+        });
+        
+        return lowest;
+    }
+    
+    calculateOffJackPoint() {
+        const offJackSuit = this.getOffJackSuit();
+        if (!offJackSuit) return null;
+        
+        // Find the off-jack in played cards
+        const offJack = this.playedCards.find(pc => 
+            pc.card.suit === offJackSuit && pc.card.rank === RANKS.JACK
+        );
+        
+        if (!offJack) return null;
+        
+        // Find which team captured it (won the trick it was played in)
+        const trickWithOffJack = this.trick.find(t => t.trickNumber === offJack.trick);
+        return trickWithOffJack ? this.players[trickWithOffJack.winner].team : null;
+    }
+    
+    calculateGamePoint() {
+        const teamPoints = { team1: 0, team2: 0 };
+        
+        // Calculate game points for each team based on captured cards
+        this.trick.forEach(trick => {
+            const winningTeam = trick.winningTeam;
+            trick.cards.forEach(play => {
+                teamPoints[winningTeam] += play.card.getGameValue();
+            });
+        });
+        
+        // Team with most game points gets the point (tie goes to team1)
+        return teamPoints.team1 >= teamPoints.team2 ? 'team1' : 'team2';
     }
     
     // Get the off-jack suit (same color as trump)
@@ -272,7 +582,10 @@ class SetbackGame {
             scores: this.scores,
             handScores: this.handScores,
             trick: this.trick,
-            playedCards: this.playedCards.length
+            currentTrick: this.currentTrick,
+            playedCards: this.playedCards.length,
+            trickNumber: this.trickNumber || 1,
+            tricksWon: this.tricksWon || { team1: 0, team2: 0 }
         };
     }
     

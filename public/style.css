@@ -316,9 +316,42 @@ body {
 
 .played-cards {
     display: flex;
-    gap: 10px;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+.current-trick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px;
+    justify-items: center;
+    align-items: center;
+}
+
+.played-card-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.played-card {
+    transform: scale(0.8);
+    pointer-events: none;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.player-label {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #ecf0f1;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
 }
 
 .player-hand {

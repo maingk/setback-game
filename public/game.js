@@ -241,12 +241,94 @@ class SetbackGame {
         // Update player hand
         this.displayPlayerHand();
 
+        // Update trick area
+        this.displayTrickArea();
+
         // Show/hide game sections based on phase
         this.updateGamePhase();
     }
 
+    displayTrickArea() {
+        const playedCardsContainer = document.getElementById('playedCards');
+        playedCardsContainer.innerHTML = '';
+
+        if (!this.gameState.currentTrick || this.gameState.currentTrick.length === 0) {
+            playedCardsContainer.innerHTML = '<p>Waiting for cards to be played...</p>';
+            return;
+        }
+
+        // Create a container for the current trick
+        const trickContainer = document.createElement('div');
+        trickContainer.className = 'current-trick';
+        
+        this.gameState.currentTrick.forEach((play, index) => {
+            const playedCard = document.createElement('div');
+            playedCard.className = 'played-card-container';
+            
+            const cardElement = this.createCardElementForDisplay(play.card);
+            cardElement.classList.add('played-card');
+            
+            const playerLabel = document.createElement('div');
+            playerLabel.className = 'player-label';
+            playerLabel.textContent = play.playerName;
+            
+            playedCard.appendChild(cardElement);
+            playedCard.appendChild(playerLabel);
+            trickContainer.appendChild(playedCard);
+        });
+
+        playedCardsContainer.appendChild(trickContainer);
+    }
+
+    createCardElementForDisplay(card) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'card';
+
+        // Add red color class for hearts and diamonds
+        if (card.suit === 'hearts' || card.suit === 'diamonds') {
+            cardDiv.classList.add('red');
+        }
+
+        // Handle joker specially
+        if (card.rank === 'JOKER') {
+            cardDiv.classList.add('joker');
+            cardDiv.innerHTML = '<div>JOKER</div>';
+        } else {
+            // Create standard playing card layout
+            const suitSymbols = {
+                'spades': '♠',
+                'hearts': '♥',
+                'diamonds': '♦',
+                'clubs': '♣'
+            };
+            
+            const suit = suitSymbols[card.suit];
+            const rank = card.rank;
+            
+            cardDiv.innerHTML = `
+                <div class="rank-suit-top">
+                    <div class="rank">${rank}</div>
+                    <div class="suit">${suit}</div>
+                </div>
+                <div class="center-suit">${suit}</div>
+                <div class="rank-suit-bottom">
+                    <div class="rank">${rank}</div>
+                    <div class="suit">${suit}</div>
+                </div>
+            `;
+        }
+
+        return cardDiv;
+    }
+
     updateCurrentPlayerInfo() {
         const currentPlayerName = document.getElementById('currentPlayerName');
+        
+        console.log('updateCurrentPlayerInfo called');
+        console.log('Game phase:', this.gameState.phase);
+        console.log('Current player index:', this.gameState.currentPlayer);
+        console.log('My player index:', this.gameState.playerIndex);
+        console.log('Current bid player:', this.gameState.currentBid.player);
         
         if (this.gameState.phase === 'bidding') {
             const currentBidder = this.gameState.players[this.gameState.currentBidder];
@@ -254,6 +336,7 @@ class SetbackGame {
         } else if (this.gameState.phase === 'playing') {
             const currentPlayer = this.gameState.players[this.gameState.currentPlayer];
             currentPlayerName.textContent = currentPlayer ? currentPlayer.name : '-';
+            console.log('Current player name:', currentPlayer ? currentPlayer.name : 'unknown');
         } else {
             currentPlayerName.textContent = '-';
         }
@@ -302,16 +385,60 @@ class SetbackGame {
         }
     }
 
+    displayHandResults() {
+        // TODO: Show detailed scoring breakdown
+        if (this.gameState.handScores) {
+            this.showMessage(`Hand scores - Me & My Uncle: ${this.gameState.handScores.team1}, West Texas Cowboys: ${this.gameState.handScores.team2}`, 'info');
+        }
+    }
+
+    displayGameResults() {
+        // TODO: Show final game results
+        const team1Score = this.gameState.scores.team1;
+        const team2Score = this.gameState.scores.team2;
+        const winner = team1Score >= 21 ? 'Me & My Uncle' : 'West Texas Cowboys';
+        this.showMessage(`Game Over! ${winner} wins ${Math.max(team1Score, team2Score)} to ${Math.min(team1Score, team2Score)}!`, 'success');
+    }
+
     displayPlayerHand() {
         const handContainer = document.getElementById('handCards');
         handContainer.innerHTML = '';
 
         if (!this.gameState.playerHand) return;
 
+        console.log('=== DISPLAYING PLAYER HAND ===');
+        console.log('Number of cards:', this.gameState.playerHand.length);
+        console.log('Game phase:', this.gameState.phase);
+        console.log('Current player:', this.gameState.currentPlayer);
+        console.log('My player index:', this.gameState.playerIndex);
+
         this.gameState.playerHand.forEach((card, index) => {
+            console.log(`Creating card ${index}:`, card);
+            
             const cardElement = this.createCardElement(card, index);
+            
+            // Replace the test click handler with the real one
+            cardElement.addEventListener('click', () => {
+                console.log('REAL CLICK HANDLER - Card clicked:', index);
+                console.log('Calling this.playCard with index:', index);
+                this.playCard(index);
+            });
+            
+            // Highlight playable cards during playing phase
+            if (this.gameState.phase === 'playing') {
+                if (this.gameState.currentPlayer === this.gameState.playerIndex) {
+                    cardElement.classList.add('playable');
+                    console.log(`Card ${index} marked as playable`);
+                } else {
+                    cardElement.classList.add('disabled');
+                }
+            }
+            
             handContainer.appendChild(cardElement);
+            console.log(`Card ${index} added to hand container`);
         });
+        
+        console.log('Hand display complete');
     }
 
     createCardElement(card, index) {
@@ -386,7 +513,20 @@ class SetbackGame {
                 }
                 break;
             case 'playing':
-                this.showMessage('Playing phase started!', 'info');
+                if (this.gameState.currentPlayer === this.gameState.playerIndex) {
+                    this.showMessage('Your turn! Click a card to play it.', 'success');
+                } else {
+                    const currentPlayerName = this.gameState.players[this.gameState.currentPlayer].name;
+                    this.showMessage(`${currentPlayerName} is playing...`, 'info');
+                }
+                break;
+            case 'scoring':
+                this.showMessage('Hand complete! Calculating scores...', 'info');
+                this.displayHandResults();
+                break;
+            case 'game_over':
+                this.showMessage('Game Over!', 'success');
+                this.displayGameResults();
                 break;
         }
     }
