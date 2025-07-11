@@ -189,6 +189,36 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle starting next hand
+  socket.on('nextHand', () => {
+    console.log('=== NEXT HAND EVENT RECEIVED ===');
+    const game = activeGames.get(socket.roomId);
+    if (game) {
+      console.log('Game found, current phase:', game.phase);
+      try {
+        if (game.phase === 'scoring') {
+          console.log('Starting next hand...');
+          const room = gameRooms.get(socket.roomId);
+          const gameState = game.startNewHand();
+          
+          // Send updated game state to all players
+          room.players.forEach((player, index) => {
+            const playerGameState = game.getPlayerGameState(index);
+            io.to(player.id).emit('gameStateUpdate', playerGameState);
+          });
+          console.log('Next hand started and sent to all players');
+        } else {
+          console.log('Not in scoring phase, cannot start next hand');
+        }
+      } catch (error) {
+        console.log('Error starting next hand:', error.message);
+        socket.emit('gameError', error.message);
+      }
+    } else {
+      console.log('No game found for nextHand event');
+    }
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);

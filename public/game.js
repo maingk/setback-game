@@ -227,10 +227,14 @@ class SetbackGame {
         document.getElementById('team1Score').textContent = this.gameState.scores.team1;
         document.getElementById('team2Score').textContent = this.gameState.scores.team2;
 
-        // Update trump and bid info
+        // Update trump, bid, and dealer info
         document.getElementById('trumpSuit').textContent = this.gameState.trump || '-';
         document.getElementById('currentBid').textContent = 
             this.gameState.currentBid.amount > 0 ? this.gameState.currentBid.amount : '-';
+        
+        // Show current dealer
+        const dealerName = this.gameState.players[this.gameState.currentDealer]?.name || '-';
+        document.getElementById('currentDealer').textContent = dealerName;
 
         // Update current player info
         this.updateCurrentPlayerInfo();
@@ -389,6 +393,24 @@ class SetbackGame {
         // TODO: Show detailed scoring breakdown
         if (this.gameState.handScores) {
             this.showMessage(`Hand scores - Me & My Uncle: ${this.gameState.handScores.team1}, West Texas Cowboys: ${this.gameState.handScores.team2}`, 'info');
+            
+            // Add next hand button after a delay (only once)
+            if (!this.nextHandTimerSet) {
+                this.nextHandTimerSet = true;
+                setTimeout(() => {
+                    if (this.gameState.phase === 'scoring') {
+                        this.showMessage('Starting next hand in 3 seconds...', 'info');
+                        // Automatically start next hand after 3 seconds
+                        setTimeout(() => {
+                            if (this.gameState.phase === 'scoring') {
+                                console.log('Sending nextHand event');
+                                this.socket.emit('nextHand');
+                                this.nextHandTimerSet = false; // Reset for next time
+                            }
+                        }, 3000);
+                    }
+                }, 2000);
+            }
         }
     }
 

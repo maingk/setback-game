@@ -97,6 +97,7 @@ class SetbackGame {
             team1: 0,
             team2: 0
         };
+        this.handNumber = 1; // Start with hand 1 (first hand)
         
         this.initializePlayers();
     }
@@ -400,10 +401,12 @@ class SetbackGame {
     }
     
     completeHand() {
+        console.log('=== COMPLETING HAND ===');
         this.phase = GAME_PHASES.SCORING;
         
         // Calculate the 6 points for this hand
         const handPoints = this.calculateHandPoints();
+        console.log('Hand points calculated:', handPoints);
         
         // Award points to teams
         this.handScores.team1 = handPoints.team1;
@@ -413,9 +416,14 @@ class SetbackGame {
         this.scores.team1 += handPoints.team1;
         this.scores.team2 += handPoints.team2;
         
+        console.log('Total scores after hand:', this.scores);
+        
         // Check if game is over (21 points)
         if (this.scores.team1 >= GAME_SETTINGS.WINNING_SCORE || this.scores.team2 >= GAME_SETTINGS.WINNING_SCORE) {
+            console.log('Game over! Final scores:', this.scores);
             this.phase = GAME_PHASES.GAME_OVER;
+        } else {
+            console.log('Hand complete, staying in scoring phase. Hand number:', this.handNumber);
         }
         
         return this.getGameState();
