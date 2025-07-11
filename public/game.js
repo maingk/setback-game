@@ -420,8 +420,16 @@ class SetbackGame {
             // Replace the test click handler with the real one
             cardElement.addEventListener('click', () => {
                 console.log('REAL CLICK HANDLER - Card clicked:', index);
+                console.log('this object:', this);
+                console.log('this.playCard exists:', typeof this.playCard);
+                console.log('this.playCard function:', this.playCard);
                 console.log('Calling this.playCard with index:', index);
-                this.playCard(index);
+                
+                try {
+                    this.playCard(index);
+                } catch (error) {
+                    console.error('Error calling playCard:', error);
+                }
             });
             
             // Highlight playable cards during playing phase
@@ -529,6 +537,38 @@ class SetbackGame {
                 this.displayGameResults();
                 break;
         }
+    }
+
+    playCard(cardIndex) {
+        console.log('=== playCard function called ===');
+        console.log('cardIndex received:', cardIndex);
+        console.log('typeof cardIndex:', typeof cardIndex);
+        console.log('this.gameState exists:', !!this.gameState);
+        
+        if (!this.gameState) {
+            console.log('ERROR: No game state found');
+            this.showMessage('Game not ready', 'error');
+            return;
+        }
+        
+        console.log('playCard called with cardIndex:', cardIndex);
+        console.log('Current game state:', this.gameState);
+
+        if (this.gameState.phase !== 'playing') {
+            console.log('Not in playing phase, current phase:', this.gameState.phase);
+            this.showMessage('Not in playing phase', 'error');
+            return;
+        }
+
+        if (this.gameState.currentPlayer !== this.gameState.playerIndex) {
+            console.log('Not your turn. Current player:', this.gameState.currentPlayer, 'Your index:', this.gameState.playerIndex);
+            this.showMessage('Wait for your turn', 'error');
+            return;
+        }
+
+        console.log('All checks passed. Sending playCard to server with cardIndex:', cardIndex);
+        this.socket.emit('playCard', cardIndex);
+        console.log('playCard event sent to server');
     }
 
     updateBiddingInterface() {
