@@ -191,6 +191,31 @@ class SetbackGame {
             };
         }
         
+        // Check if this is the dealer's turn and first 3 players passed
+        if (playerIndex === this.currentDealer && this.bids.length === 4) {
+            const firstThreeBids = this.bids.slice(0, 3);
+            const allPassedExceptDealer = firstThreeBids.every(bid => bid.amount === 'pass');
+            
+            if (allPassedExceptDealer && bidAmount === 'pass') {
+                // Dealer tried to pass but can't - force bid of 2
+                console.log('Dealer forced to bid 2 - first three players passed');
+                this.bids[this.bids.length - 1] = {
+                    player: playerIndex,
+                    amount: 2,
+                    playerName: this.players[playerIndex].name,
+                    forced: true
+                };
+                
+                this.currentBid = {
+                    amount: 2,
+                    player: playerIndex
+                };
+                
+                this.phase = GAME_PHASES.TRUMP_SELECTION;
+                return this.getGameState();
+            }
+        }
+        
         // Move to next bidder
         this.currentBidder = (this.currentBidder + 1) % 4;
         
@@ -200,16 +225,23 @@ class SetbackGame {
                 this.phase = GAME_PHASES.TRUMP_SELECTION;
             } else {
                 // All players passed - dealer must bid minimum
+                console.log('All players passed - forcing dealer to bid minimum');
                 this.currentBid = {
                     amount: GAME_SETTINGS.MIN_BID,
                     player: this.currentDealer
                 };
+                this.bids.push({
+                    player: this.currentDealer,
+                    amount: GAME_SETTINGS.MIN_BID,
+                    playerName: this.players[this.currentDealer].name,
+                    forced: true
+                });
                 this.phase = GAME_PHASES.TRUMP_SELECTION;
             }
         }
         
         return this.getGameState();
-    }
+    } 
     
     isBiddingComplete() {
         // Bidding is complete when all 4 players have bid
@@ -579,8 +611,18 @@ class SetbackGame {
         const currentBidder = this.currentBidder;
         const currentBidAmount = this.currentBid.amount;
         
-        // 60% chance to pass, 40% chance to bid
-        if (Math.random() < 0.6 || currentBidAmount >= 5) {
+        // Check if this is the dealer and first 3 players passed
+        if (currentBidder === this.currentDealer && this.bids.length === 3) {
+            const allPassed = this.bids.every(bid => bid.amount === 'pass');
+            if (allPassed) {
+                // Dealer is forced to bid, so let's make them bid 2
+                console.log(`Auto-bidding: Player ${currentBidder} (dealer) FORCED to bid 2`);
+                return this.placeBid(currentBidder, 2);
+            }
+        }
+        
+        // Regular bidding logic - increase chance of passing for testing forced dealer scenario
+        if (Math.random() < 0.8 || currentBidAmount >= 5) {
             console.log(`Auto-bidding: Player ${currentBidder} passes`);
             return this.placeBid(currentBidder, 'pass');
         } else {
