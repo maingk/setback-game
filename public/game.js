@@ -389,29 +389,74 @@ class SetbackGame {
         }
     }
 
-    displayHandResults() {
-        // TODO: Show detailed scoring breakdown
-        if (this.gameState.handScores) {
-            this.showMessage(`Hand scores - Me & My Uncle: ${this.gameState.handScores.team1}, West Texas Cowboys: ${this.gameState.handScores.team2}`, 'info');
+    displayDetailedScoring() {
+        const breakdown = document.getElementById('scoringBreakdown');
+        const nextHandBtn = document.getElementById('nextHandBtn');
+        
+        // We'll need to request detailed scoring from server
+        // For now, show basic breakdown with available data
+        breakdown.innerHTML = `
+            <h4>Hand ${this.gameState.handNumber || ''} Results</h4>
             
-            // Add next hand button after a delay (only once)
-            if (!this.nextHandTimerSet) {
-                this.nextHandTimerSet = true;
-                setTimeout(() => {
-                    if (this.gameState.phase === 'scoring') {
-                        this.showMessage('Starting next hand in 3 seconds...', 'info');
-                        // Automatically start next hand after 3 seconds
-                        setTimeout(() => {
-                            if (this.gameState.phase === 'scoring') {
-                                console.log('Sending nextHand event');
-                                this.socket.emit('nextHand');
-                                this.nextHandTimerSet = false; // Reset for next time
-                            }
-                        }, 3000);
-                    }
-                }, 2000);
-            }
-        }
+            <div class="point-line">
+                <div class="point-name">High:</div>
+                <div class="point-detail">Highest trump played</div>
+                <div class="point-winner">TBD</div>
+            </div>
+            
+            <div class="point-line">
+                <div class="point-name">Low:</div>
+                <div class="point-detail">Lowest trump played</div>
+                <div class="point-winner">TBD</div>
+            </div>
+            
+            <div class="point-line">
+                <div class="point-name">Jack:</div>
+                <div class="point-detail">Jack of trump (if played)</div>
+                <div class="point-winner">TBD</div>
+            </div>
+            
+            <div class="point-line">
+                <div class="point-name">Off-Jack:</div>
+                <div class="point-detail">Jack of same color as trump</div>
+                <div class="point-winner">TBD</div>
+            </div>
+            
+            <div class="point-line">
+                <div class="point-name">Joker:</div>
+                <div class="point-detail">The joker (if played)</div>
+                <div class="point-winner">TBD</div>
+            </div>
+            
+            <div class="point-line">
+                <div class="point-name">Game:</div>
+                <div class="point-detail">Most game points captured</div>
+                <div class="point-winner">TBD</div>
+            </div>
+            
+            <div class="scoring-totals">
+                <div class="team-total">
+                    <h5>Me & My Uncle</h5>
+                    <div class="total-points team1">${this.gameState.handScores?.team1 || 0}</div>
+                </div>
+                <div class="team-total">
+                    <h5>West Texas Cowboys</h5>
+                    <div class="total-points team2">${this.gameState.handScores?.team2 || 0}</div>
+                </div>
+            </div>
+        `;
+        
+        // Set up next hand button
+        nextHandBtn.onclick = () => {
+            this.socket.emit('nextHand');
+            nextHandBtn.disabled = true;
+            nextHandBtn.textContent = 'Starting...';
+        };
+    }
+
+    displayHandResults() {
+        // Legacy method for compatibility
+        this.displayDetailedScoring();
     }
 
     displayGameResults() {
@@ -522,10 +567,12 @@ class SetbackGame {
     updateGamePhase() {
         const biddingSection = document.getElementById('biddingSection');
         const trumpSelection = document.getElementById('trumpSelection');
+        const scoringDisplay = document.getElementById('scoringDisplay');
 
         // Hide all sections first
         biddingSection.style.display = 'none';
         trumpSelection.style.display = 'none';
+        scoringDisplay.style.display = 'none';
 
         // Show appropriate section based on game phase
         switch (this.gameState.phase) {
@@ -551,8 +598,9 @@ class SetbackGame {
                 }
                 break;
             case 'scoring':
-                this.showMessage('Hand complete! Calculating scores...', 'info');
-                this.displayHandResults();
+                scoringDisplay.style.display = 'block';
+                this.displayDetailedScoring();
+                this.showMessage('Hand complete! Check the scoring breakdown.', 'info');
                 break;
             case 'game_over':
                 this.showMessage('Game Over!', 'success');

@@ -112,14 +112,6 @@ class SetbackGame {
     }
     
     startNewHand() {
-        console.log('TESTING - startNewHand function is running');
-        console.log('Current dealer before rotation:', this.currentDealer);
-        
-        // Always rotate dealer (simple test)
-        this.currentDealer = (this.currentDealer + 1) % 4;
-        console.log('Dealer after rotation:', this.currentDealer);
-        console.log('New dealer name:', this.players[this.currentDealer].name);
-        
         // Reset for new hand
         this.deck = new Deck();
         this.deck.shuffle();
@@ -128,7 +120,6 @@ class SetbackGame {
         this.currentBid = { amount: 0, player: null };
         this.bids = [];
         this.trick = [];
-        this.currentTrick = [];
         this.playedCards = [];
         this.handScores = { team1: 0, team2: 0 };
         
@@ -144,9 +135,8 @@ class SetbackGame {
         this.currentBidder = (this.currentDealer + 1) % 4;
         this.phase = GAME_PHASES.BIDDING;
         
-        console.log('Function complete - returning game state');
         return this.getGameState();
-    } 
+    }
     
     dealCards() {
         // Deal 6 cards to each player
@@ -224,7 +214,7 @@ class SetbackGame {
             if (this.currentBid.player !== null) {
                 this.phase = GAME_PHASES.TRUMP_SELECTION;
             } else {
-                // All players passed - dealer must bid minimum
+                // All players passed - dealer must bid minimum (this shouldn't happen with above logic)
                 console.log('All players passed - forcing dealer to bid minimum');
                 this.currentBid = {
                     amount: GAME_SETTINGS.MIN_BID,
@@ -241,7 +231,7 @@ class SetbackGame {
         }
         
         return this.getGameState();
-    } 
+    }
     
     isBiddingComplete() {
         // Bidding is complete when all 4 players have bid
@@ -447,7 +437,8 @@ class SetbackGame {
         this.phase = GAME_PHASES.SCORING;
         
         // Calculate the 6 points for this hand
-        const handPoints = this.calculateHandPoints();
+        const handPointsResult = this.calculateHandPoints();
+        const handPoints = handPointsResult.points;
         console.log('Hand points calculated:', handPoints);
         
         // Award points to teams
@@ -473,12 +464,23 @@ class SetbackGame {
     
     calculateHandPoints() {
         const points = { team1: 0, team2: 0 };
+        const breakdown = {
+            high: null,
+            low: null,
+            jack: null,
+            offJack: null,
+            joker: null,
+            game: null
+        };
+        
         const trumpCards = this.playedCards.filter(pc => this.isTrump(pc.card));
         
         if (trumpCards.length === 0) {
             // No trump played - only Game point available
-            points[this.calculateGamePoint()] += 1;
-            return points;
+            const gameWinner = this.calculateGamePoint();
+            points[gameWinner] += 1;
+            breakdown.game = { winner: gameWinner, detail: 'Most game points (no trump played)' };
+            return { points, breakdown };
         }
         
         // 1. HIGH - Highest trump played
@@ -486,6 +488,11 @@ class SetbackGame {
         if (highTrump) {
             const team = this.players[highTrump.player].team;
             points[team] += 1;
+            breakdown.high = {
+                winner: team,
+                detail: `${highTrump.card.getDisplayValue()} by ${this.players[highTrump.player].name}`,
+                card: highTrump.card
+            };
         }
         
         // 2. LOW - Lowest trump played  
@@ -493,6 +500,11 @@ class SetbackGame {
         if (lowTrump) {
             const team = this.players[lowTrump.player].team;
             points[team] += 1;
+            breakdown.low = {
+                winner: team,
+                detail: `${lowTrump.card.getDisplayValue()} by ${this.players[lowTrump.player].name}`,
+                card: lowTrump.card
+            };
         }
         
         // 3. JACK - Jack of trump (if played)
@@ -502,12 +514,22 @@ class SetbackGame {
         if (jackOfTrump) {
             const team = this.players[jackOfTrump.player].team;
             points[team] += 1;
+            breakdown.jack = {
+                winner: team,
+                detail: `Jack of ${this.trump} by ${this.players[jackOfTrump.player].name}`,
+                card: jackOfTrump.card
+            };
         }
         
         // 4. OFF-JACK - Jack of same color as trump (if captured)
-        const offJackTeam = this.calculateOffJackPoint();
-        if (offJackTeam) {
-            points[offJackTeam] += 1;
+        const offJackResult = this.calculateOffJackPoint();
+        if (offJackResult) {
+            points[offJackResult.team] += 1;
+            breakdown.offJack = {
+                winner: offJackResult.team,
+                detail: `Jack of ${offJackResult.suit} captured by ${offJackResult.winnerName}`,
+                card: offJackResult.card
+            };
         }
         
         // 5. JOKER - The joker (if played)
@@ -515,13 +537,19 @@ class SetbackGame {
         if (joker) {
             const team = this.players[joker.player].team;
             points[team] += 1;
+            breakdown.joker = {
+                winner: team,
+                detail: `Joker by ${this.players[joker.player].name}`,
+                card: joker.card
+            };
         }
         
         // 6. GAME - Most game points from captured cards
-        const gameTeam = this.calculateGamePoint();
-        points[gameTeam] += 1;
+        const gameResult = this.calculateGamePointDetailed();
+        points[gameResult.winner] += 1;
+        breakdown.game = gameResult;
         
-        return points;
+        return { points, breakdown };
     }
     
     findHighestTrump(trumpCards) {
@@ -567,7 +595,14 @@ class SetbackGame {
         
         // Find which team captured it (won the trick it was played in)
         const trickWithOffJack = this.trick.find(t => t.trickNumber === offJack.trick);
-        return trickWithOffJack ? this.players[trickWithOffJack.winner].team : null;
+        if (!trickWithOffJack) return null;
+        
+        return {
+            team: this.players[trickWithOffJack.winner].team,
+            suit: offJackSuit,
+            winnerName: this.players[trickWithOffJack.winner].name,
+            card: offJack.card
+        };
     }
     
     calculateGamePoint() {
@@ -583,6 +618,28 @@ class SetbackGame {
         
         // Team with most game points gets the point (tie goes to team1)
         return teamPoints.team1 >= teamPoints.team2 ? 'team1' : 'team2';
+    }
+
+    calculateGamePointDetailed() {
+        const teamPoints = { team1: 0, team2: 0 };
+        
+        // Calculate game points for each team based on captured cards
+        this.trick.forEach(trick => {
+            const winningTeam = trick.winningTeam;
+            trick.cards.forEach(play => {
+                teamPoints[winningTeam] += play.card.getGameValue();
+            });
+        });
+        
+        // Determine winner and create detailed result
+        const winner = teamPoints.team1 >= teamPoints.team2 ? 'team1' : 'team2';
+        
+        return {
+            winner: winner,
+            detail: `Team1: ${teamPoints.team1} pts, Team2: ${teamPoints.team2} pts`,
+            team1Points: teamPoints.team1,
+            team2Points: teamPoints.team2
+        };
     }
     
     // =============================================================================
