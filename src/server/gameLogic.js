@@ -112,6 +112,14 @@ class SetbackGame {
     }
     
     startNewHand() {
+        console.log('TESTING - startNewHand function is running');
+        console.log('Current dealer before rotation:', this.currentDealer);
+        
+        // Always rotate dealer (simple test)
+        this.currentDealer = (this.currentDealer + 1) % 4;
+        console.log('Dealer after rotation:', this.currentDealer);
+        console.log('New dealer name:', this.players[this.currentDealer].name);
+        
         // Reset for new hand
         this.deck = new Deck();
         this.deck.shuffle();
@@ -120,6 +128,7 @@ class SetbackGame {
         this.currentBid = { amount: 0, player: null };
         this.bids = [];
         this.trick = [];
+        this.currentTrick = [];
         this.playedCards = [];
         this.handScores = { team1: 0, team2: 0 };
         
@@ -135,8 +144,9 @@ class SetbackGame {
         this.currentBidder = (this.currentDealer + 1) % 4;
         this.phase = GAME_PHASES.BIDDING;
         
+        console.log('Function complete - returning game state');
         return this.getGameState();
-    }
+    } 
     
     dealCards() {
         // Deal 6 cards to each player
@@ -541,6 +551,128 @@ class SetbackGame {
         
         // Team with most game points gets the point (tie goes to team1)
         return teamPoints.team1 >= teamPoints.team2 ? 'team1' : 'team2';
+    }
+    
+    // =============================================================================
+    // DEBUG / AUTO-PLAY METHODS FOR TESTING
+    // =============================================================================
+    
+    autoPlay() {
+        console.log('=== AUTO-PLAY TRIGGERED ===');
+        console.log('Current phase:', this.phase);
+        console.log('Current player:', this.currentPlayer);
+        
+        switch (this.phase) {
+            case GAME_PHASES.BIDDING:
+                return this.autoBid();
+            case GAME_PHASES.TRUMP_SELECTION:
+                return this.autoSelectTrump();
+            case GAME_PHASES.PLAYING:
+                return this.autoPlayCard();
+            default:
+                console.log('No auto-play available for phase:', this.phase);
+                return null;
+        }
+    }
+    
+    autoBid() {
+        const currentBidder = this.currentBidder;
+        const currentBidAmount = this.currentBid.amount;
+        
+        // 60% chance to pass, 40% chance to bid
+        if (Math.random() < 0.6 || currentBidAmount >= 5) {
+            console.log(`Auto-bidding: Player ${currentBidder} passes`);
+            return this.placeBid(currentBidder, 'pass');
+        } else {
+            // Bid one higher than current bid, but minimum 2
+            const bidAmount = Math.max(2, Math.min(currentBidAmount + 1, 6));
+            console.log(`Auto-bidding: Player ${currentBidder} bids ${bidAmount}`);
+            return this.placeBid(currentBidder, bidAmount);
+        }
+    }
+    
+    autoSelectTrump() {
+        const biddingPlayer = this.currentBid.player;
+        const suits = Object.values(SUITS);
+        const randomSuit = suits[Math.floor(Math.random() * suits.length)];
+        
+        console.log(`Auto trump selection: Player ${biddingPlayer} selects ${randomSuit}`);
+        return this.selectTrump(biddingPlayer, randomSuit);
+    }
+    
+    autoPlayCard() {
+        const currentPlayer = this.currentPlayer;
+        const player = this.players[currentPlayer];
+        const hand = player.hand;
+        
+        if (hand.length === 0) {
+            console.log('No cards in hand to auto-play');
+            return null;
+        }
+        
+        // Find valid cards to play
+        const validCards = [];
+        for (let i = 0; i < hand.length; i++) {
+            if (this.isValidPlay(hand[i], hand)) {
+                validCards.push(i);
+            }
+        }
+        
+        if (validCards.length === 0) {
+            console.log('No valid cards found');
+            return null;
+        }
+        
+        // Play a random valid card
+        const cardIndex = validCards[Math.floor(Math.random() * validCards.length)];
+        const card = hand[cardIndex];
+        
+        console.log(`Auto-playing: Player ${currentPlayer} plays ${card.rank} of ${card.suit}`);
+        return this.playCard(currentPlayer, cardIndex);
+    }
+    
+    // Fast-forward through entire bidding phase
+    autoCompleteBidding() {
+        console.log('=== AUTO-COMPLETING BIDDING ===');
+        let attempts = 0;
+        while (this.phase === GAME_PHASES.BIDDING && attempts < 20) {
+            this.autoBid();
+            attempts++;
+        }
+        return this.getGameState();
+    }
+    
+    // Auto-play entire hand to completion
+    autoCompleteHand() {
+        console.log('=== AUTO-COMPLETING HAND ===');
+        console.log('Starting phase:', this.phase);
+        console.log('Starting hand number:', this.handNumber);
+        console.log('Starting dealer:', this.currentDealer);
+        
+        // Complete bidding if needed
+        if (this.phase === GAME_PHASES.BIDDING) {
+            this.autoCompleteBidding();
+        }
+        
+        // Auto-select trump if needed
+        if (this.phase === GAME_PHASES.TRUMP_SELECTION) {
+            this.autoSelectTrump();
+        }
+        
+        // Auto-play all cards
+        let attempts = 0;
+        while (this.phase === GAME_PHASES.PLAYING && attempts < 50) {
+            this.autoPlayCard();
+            attempts++;
+        }
+        
+        console.log('Hand auto-completion finished.');
+        console.log('Final phase:', this.phase);
+        console.log('Final hand number:', this.handNumber);
+        console.log('Final dealer:', this.currentDealer);
+        console.log('Scores:', this.scores);
+        
+        return this.getGameState();
     }
     
     // Get the off-jack suit (same color as trump)

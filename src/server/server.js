@@ -190,16 +190,25 @@ io.on('connection', (socket) => {
   });
 
   // Handle starting next hand
-  socket.on('nextHand', () => {
+socket.on('nextHand', () => {
     console.log('=== NEXT HAND EVENT RECEIVED ===');
     const game = activeGames.get(socket.roomId);
     if (game) {
       console.log('Game found, current phase:', game.phase);
+      console.log('Game dealer before startNewHand:', game.currentDealer);
+      console.log('Game players:', game.players.map(p => p.name));
       try {
         if (game.phase === 'scoring') {
           console.log('Starting next hand...');
-          const room = gameRooms.get(socket.roomId);
+          console.log('About to call game.startNewHand()');
+          
           const gameState = game.startNewHand();
+          
+          console.log('startNewHand() returned, new phase:', gameState.phase);
+          console.log('Game dealer after startNewHand:', game.currentDealer);
+          console.log('New dealer name:', game.players[game.currentDealer].name);
+          
+          const room = gameRooms.get(socket.roomId);
           
           // Send updated game state to all players
           room.players.forEach((player, index) => {
@@ -212,6 +221,7 @@ io.on('connection', (socket) => {
         }
       } catch (error) {
         console.log('Error starting next hand:', error.message);
+        console.log('Error stack:', error.stack);
         socket.emit('gameError', error.message);
       }
     } else {
@@ -256,6 +266,76 @@ app.get('/constants.js', (req, res) => {
 
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', rooms: gameRooms.size });
+});
+
+// =============================================================================
+// DEBUG ENDPOINTS FOR AUTO-PLAY
+// =============================================================================
+
+app.post('/debug/autoplay/:roomId', (req, res) => {
+  const game = activeGames.get(req.params.roomId);
+  if (!game) {
+    return res.json({ error: 'Game not found' });
+  }
+  
+  const gameState = game.autoPlay();
+  if (gameState) {
+    // Send updated game state to all players
+    const room = gameRooms.get(req.params.roomId);
+    room.players.forEach((player, index) => {
+      const playerGameState = game.getPlayerGameState(index);
+      io.to(player.id).emit('gameStateUpdate', playerGameState);
+    });
+    res.json({ success: true, phase: gameState.phase });
+  } else {
+    res.json({ error: 'No auto-play available for current phase' });
+  }
+});
+
+app.post('/debug/complete-bidding/:roomId', (req, res) => {
+  const game = activeGames.get(req.params.roomId);
+  if (!game) {
+    return res.json({ error: 'Game not found' });
+  }
+  
+  const gameState = game.autoCompleteBidding();
+  const room = gameRooms.get(req.params.roomId);
+  room.players.forEach((player, index) => {
+    const playerGameState = game.getPlayerGameState(index);
+    io.to(player.id).emit('gameStateUpdate', playerGameState);
+  });
+  res.json({ success: true, phase: gameState.phase });
+});
+
+app.post('/debug/complete-hand/:roomId', (req, res) => {
+  const game = activeGames.get(req.params.roomId);
+  if (!game) {
+    return res.json({ error: 'Game not found' });
+  }
+  
+  const gameState = game.autoCompleteHand();
+  const room = gameRooms.get(req.params.roomId);
+  room.players.forEach((player, index) => {
+    const playerGameState = game.getPlayerGameState(index);
+    io.to(player.id).emit('gameStateUpdate', playerGameState);
+  });
+  res.json({ success: true, phase: gameState.phase });
+});
+
+app.get('/debug/game-state/:roomId', (req, res) => {
+  const game = activeGames.get(req.params.roomId);
+  if (!game) {
+    return res.json({ error: 'Game not found' });
+  }
+  
+  res.json({
+    phase: game.phase,
+    currentPlayer: game.currentPlayer,
+    currentDealer: game.currentDealer,
+    handNumber: game.handNumber,
+    scores: game.scores,
+    trump: game.trump
+  });
 });
 
 server.listen(PORT, () => {
