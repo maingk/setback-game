@@ -439,11 +439,13 @@ class SetbackGame {
         // Calculate the 6 points for this hand
         const handPointsResult = this.calculateHandPoints();
         const handPoints = handPointsResult.points;
+        const scoringBreakdown = handPointsResult.breakdown;
         console.log('Hand points calculated:', handPoints);
         
         // Award points to teams
         this.handScores.team1 = handPoints.team1;
         this.handScores.team2 = handPoints.team2;
+        this.scoringBreakdown = scoringBreakdown;
         
         // Add to total scores
         this.scores.team1 += handPoints.team1;
@@ -824,6 +826,7 @@ class SetbackGame {
             currentTrick: this.currentTrick,
             playedCards: this.playedCards.length,
             trickNumber: this.trickNumber || 1,
+            scoringBreakdown: this.scoringBreakdown || null,
             tricksWon: this.tricksWon || { team1: 0, team2: 0 }
         };
     }

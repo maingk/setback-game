@@ -251,6 +251,9 @@ class SetbackGame {
         // Show/hide game sections based on phase
         this.updateGamePhase();
     }
+    getTeamName(team) {
+        return team === 'team1' ? 'Me & My Uncle' : 'West Texas Cowboys';
+    }
 
     displayTrickArea() {
         const playedCardsContainer = document.getElementById('playedCards');
@@ -388,50 +391,54 @@ class SetbackGame {
             team2Section.classList.add('my-team');
         }
     }
-
+    
+    getTeamName(team) {
+        return team === 'team1' ? 'Me & My Uncle' : 'West Texas Cowboys';
+    }
+    
     displayDetailedScoring() {
         const breakdown = document.getElementById('scoringBreakdown');
         const nextHandBtn = document.getElementById('nextHandBtn');
         
-        // We'll need to request detailed scoring from server
-        // For now, show basic breakdown with available data
+        const scoringData = this.gameState.scoringBreakdown || {};
+        
         breakdown.innerHTML = `
             <h4>Hand ${this.gameState.handNumber || ''} Results</h4>
             
             <div class="point-line">
                 <div class="point-name">High:</div>
-                <div class="point-detail">Highest trump played</div>
-                <div class="point-winner">TBD</div>
+                <div class="point-detail">${scoringData.high?.detail || 'No trump played'}</div>
+                <div class="point-winner ${scoringData.high?.winner || ''}">${scoringData.high ? this.getTeamName(scoringData.high.winner) : 'None'}</div>
             </div>
             
             <div class="point-line">
                 <div class="point-name">Low:</div>
-                <div class="point-detail">Lowest trump played</div>
-                <div class="point-winner">TBD</div>
+                <div class="point-detail">${scoringData.low?.detail || 'No trump played'}</div>
+                <div class="point-winner ${scoringData.low?.winner || ''}">${scoringData.low ? this.getTeamName(scoringData.low.winner) : 'None'}</div>
             </div>
             
             <div class="point-line">
                 <div class="point-name">Jack:</div>
-                <div class="point-detail">Jack of trump (if played)</div>
-                <div class="point-winner">TBD</div>
+                <div class="point-detail">${scoringData.jack?.detail || 'Jack of trump not played'}</div>
+                <div class="point-winner ${scoringData.jack?.winner || ''}">${scoringData.jack ? this.getTeamName(scoringData.jack.winner) : 'None'}</div>
             </div>
             
             <div class="point-line">
                 <div class="point-name">Off-Jack:</div>
-                <div class="point-detail">Jack of same color as trump</div>
-                <div class="point-winner">TBD</div>
+                <div class="point-detail">${scoringData.offJack?.detail || 'Off-jack not played'}</div>
+                <div class="point-winner ${scoringData.offJack?.winner || ''}">${scoringData.offJack ? this.getTeamName(scoringData.offJack.winner) : 'None'}</div>
             </div>
             
             <div class="point-line">
                 <div class="point-name">Joker:</div>
-                <div class="point-detail">The joker (if played)</div>
-                <div class="point-winner">TBD</div>
+                <div class="point-detail">${scoringData.joker?.detail || 'Joker not played'}</div>
+                <div class="point-winner ${scoringData.joker?.winner || ''}">${scoringData.joker ? this.getTeamName(scoringData.joker.winner) : 'None'}</div>
             </div>
             
             <div class="point-line">
                 <div class="point-name">Game:</div>
-                <div class="point-detail">Most game points captured</div>
-                <div class="point-winner">TBD</div>
+                <div class="point-detail">${scoringData.game?.detail || 'Most game points'}</div>
+                <div class="point-winner ${scoringData.game?.winner || ''}">${scoringData.game ? this.getTeamName(scoringData.game.winner) : 'None'}</div>
             </div>
             
             <div class="scoring-totals">
@@ -568,7 +575,14 @@ class SetbackGame {
         const biddingSection = document.getElementById('biddingSection');
         const trumpSelection = document.getElementById('trumpSelection');
         const scoringDisplay = document.getElementById('scoringDisplay');
-
+        
+        // Reset next hand button when leaving scoring phase
+        const nextHandBtn = document.getElementById('nextHandBtn');
+        if (nextHandBtn && this.gameState.phase !== 'scoring') {
+        nextHandBtn.disabled = false;
+        nextHandBtn.textContent = 'Start Next Hand';
+        }
+        
         // Hide all sections first
         biddingSection.style.display = 'none';
         trumpSelection.style.display = 'none';
