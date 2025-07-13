@@ -138,6 +138,10 @@ class SetbackGame {
         return this.getGameState();
     }
     
+    getTeamName(team) {
+        return team === 'team1' ? 'Me & My Uncle' : 'West Texas Cowboys';
+    }
+
     dealCards() {
         // Deal 6 cards to each player
         for (let i = 0; i < GAME_SETTINGS.CARDS_PER_PLAYER; i++) {
@@ -437,21 +441,65 @@ class SetbackGame {
         this.phase = GAME_PHASES.SCORING;
         
         // Calculate the 6 points for this hand
-        const handPointsResult = this.calculateHandPoints();
-        const handPoints = handPointsResult.points;
-        const scoringBreakdown = handPointsResult.breakdown;
-        console.log('Hand points calculated:', handPoints);
-        
-        // Award points to teams
-        this.handScores.team1 = handPoints.team1;
-        this.handScores.team2 = handPoints.team2;
-        this.scoringBreakdown = scoringBreakdown;
-        
-        // Add to total scores
-        this.scores.team1 += handPoints.team1;
-        this.scores.team2 += handPoints.team2;
-        
-        console.log('Total scores after hand:', this.scores);
+    const handPointsResult = this.calculateHandPoints();
+    const handPoints = handPointsResult.points;
+    const scoringBreakdown = handPointsResult.breakdown;
+
+    // Check bid fulfillment
+    const biddingTeam = this.players[this.currentBid.player].team;
+    const bidAmount = this.currentBid.amount;
+    const teamEarnedPoints = handPoints[biddingTeam];
+
+    let finalHandScores = { team1: 0, team2: 0 };
+    let bidResult = null;
+
+    if (teamEarnedPoints >= bidAmount) {
+    // Team made their bid - they get all points they earned
+    finalHandScores = { ...handPoints };
+    bidResult = {
+        success: true,
+        biddingTeam: biddingTeam,
+        bidAmount: bidAmount,
+        earnedPoints: teamEarnedPoints,
+        message: `${this.getTeamName(biddingTeam)} made their bid of ${bidAmount}!`,
+    };
+    console.log(
+        `${biddingTeam} made their bid of ${bidAmount} (earned ${teamEarnedPoints})`
+    );
+    } else {
+    // Team failed to make their bid - they get set back
+    finalHandScores[biddingTeam] = -bidAmount; // Negative points (set back)
+
+    // Other team gets their earned points
+    const otherTeam = biddingTeam === "team1" ? "team2" : "team1";
+    finalHandScores[otherTeam] = handPoints[otherTeam];
+
+    bidResult = {
+        success: false,
+        biddingTeam: biddingTeam,
+        bidAmount: bidAmount,
+        earnedPoints: teamEarnedPoints,
+        message: `${this.getTeamName(
+        biddingTeam
+        )} failed to make their bid of ${bidAmount} (only earned ${teamEarnedPoints}) - SET BACK!`,
+    };
+    console.log(
+        `${biddingTeam} FAILED bid of ${bidAmount} (only earned ${teamEarnedPoints}) - SET BACK!`
+    );
+    }
+
+    // Award final points to teams
+    this.handScores.team1 = finalHandScores.team1;
+    this.handScores.team2 = finalHandScores.team2;
+    this.scoringBreakdown = scoringBreakdown;
+    this.bidResult = bidResult;
+
+    // Add to total scores
+    this.scores.team1 += finalHandScores.team1;
+    this.scores.team2 += finalHandScores.team2;
+
+    console.log("Final hand scores after bid checking:", finalHandScores);
+    console.log("Total scores after hand:", this.scores);
         
         // Check if game is over (21 points)
         if (this.scores.team1 >= GAME_SETTINGS.WINNING_SCORE || this.scores.team2 >= GAME_SETTINGS.WINNING_SCORE) {
@@ -827,7 +875,8 @@ class SetbackGame {
             playedCards: this.playedCards.length,
             trickNumber: this.trickNumber || 1,
             scoringBreakdown: this.scoringBreakdown || null,
-            tricksWon: this.tricksWon || { team1: 0, team2: 0 }
+            tricksWon: this.tricksWon || { team1: 0, team2: 0 },
+            bidResult: this.bidResult || null
         };
     }
     

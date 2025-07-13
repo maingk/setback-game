@@ -409,8 +409,18 @@ class SetbackGame {
         const nextHandBtn = document.getElementById('nextHandBtn');
         
         const scoringData = this.gameState.scoringBreakdown || {};
+        const bidResult = this.gameState.bidResult || null;
         
-        breakdown.innerHTML = `            
+        breakdown.innerHTML = `  
+        
+        ${bidResult ? `
+            <div class="bid-result ${bidResult.success ? 'bid-made' : 'bid-failed'}">
+                <strong>${bidResult.message}</strong>
+            </div>
+        ` : ''}
+        
+        <div class="point-line">
+            <div class="point-name">High:</div>     
             <div class="point-line">
                 <div class="point-name">High:</div>
                 <div class="point-detail">${scoringData.high?.detail || 'No trump played'}</div>
