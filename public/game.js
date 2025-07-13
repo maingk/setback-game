@@ -229,8 +229,16 @@ class SetbackGame {
 
         // Update trump, bid, and dealer info
         document.getElementById('trumpSuit').textContent = this.gameState.trump || '-';
+        
+        // Update bid info with player name and team
+        if (this.gameState.currentBid.amount > 0) {
+        const bidder = this.gameState.players[this.gameState.currentBid.player];
+        const teamName = this.getTeamName(bidder.team);
         document.getElementById('currentBid').textContent = 
-            this.gameState.currentBid.amount > 0 ? this.gameState.currentBid.amount : '-';
+        `${this.gameState.currentBid.amount} (${bidder.name} - ${teamName})`;
+        } else {
+        document.getElementById('currentBid').textContent = '-';
+    }
         
         // Show current dealer
         const dealerName = this.gameState.players[this.gameState.currentDealer]?.name || '-';
@@ -402,9 +410,7 @@ class SetbackGame {
         
         const scoringData = this.gameState.scoringBreakdown || {};
         
-        breakdown.innerHTML = `
-            <h4>Hand ${this.gameState.handNumber || ''} Results</h4>
-            
+        breakdown.innerHTML = `            
             <div class="point-line">
                 <div class="point-name">High:</div>
                 <div class="point-detail">${scoringData.high?.detail || 'No trump played'}</div>
@@ -684,3 +690,32 @@ class SetbackGame {
 document.addEventListener('DOMContentLoaded', () => {
     new SetbackGame();
 });
+
+// =============================================================================
+// AUTO-JOIN FOR TESTING (Remove in production)
+// =============================================================================
+
+// Auto-join if URL has ?autotest parameter
+if (window.location.search.includes('autotest')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            // Auto-generate player name based on which tab this is
+            const playerNames = ['Rich', 'Evan', 'Pres', 'Trent'];
+            const randomName = playerNames[Math.floor(Math.random() * playerNames.length)] + Math.floor(Math.random() * 1000);
+            
+            document.getElementById('playerName').value = randomName;
+            document.getElementById('roomId').value = 'TEST';
+            
+            // Auto-click join
+            document.getElementById('joinGameBtn').click();
+            
+            // Auto-ready after joining
+            setTimeout(() => {
+                const readyBtn = document.getElementById('readyBtn');
+                if (readyBtn && !readyBtn.classList.contains('ready')) {
+                    readyBtn.click();
+                }
+            }, 1000);
+        }, 500);
+    });
+}
