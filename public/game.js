@@ -479,6 +479,13 @@ class SetbackGame {
         </div>
     </div>
 `;
+   // Set up next hand button
+   nextHandBtn.onclick = () => {
+    this.socket.emit('nextHand');
+    nextHandBtn.disabled = true;
+    nextHandBtn.textContent = 'Starting...';
+};
+}
         
 displayGameOverScoring() {
     const breakdown = document.getElementById('scoringBreakdown');
@@ -575,13 +582,7 @@ displayGameOverScoring() {
             
           
         
-        // Set up next hand button
-        nextHandBtn.onclick = () => {
-            this.socket.emit('nextHand');
-            nextHandBtn.disabled = true;
-            nextHandBtn.textContent = 'Starting...';
-        };
-    }
+     
 
     displayHandResults() {
         // Legacy method for compatibility

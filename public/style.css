@@ -146,7 +146,7 @@ body::before {
 }
 
 .player-ready {
-    background: rgba(46, 204, 113, 0.3) !important;
+    background: rgba(0, 100, 0, 0.4) !important;
 }
 
 .lobby-actions {

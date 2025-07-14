@@ -341,3 +341,55 @@ app.get('/debug/game-state/:roomId', (req, res) => {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+app.post('/debug/complete-game/:roomId', (req, res) => {
+    const game = activeGames.get(req.params.roomId);
+    if (!game) {
+      return res.json({ error: 'Game not found' });
+    }
+    
+    console.log('=== AUTO-COMPLETING ENTIRE GAME ===');
+    let handsPlayed = 0;
+    const maxHands = 50; // Safety limit
+    
+    try {
+      while (game.scores.team1 < 21 && game.scores.team2 < 21 && handsPlayed < maxHands) {
+        handsPlayed++;
+        console.log(`Auto-playing hand ${handsPlayed}...`);
+        
+        // Complete one full hand
+        game.autoCompleteHand();
+        
+        // If we're in scoring phase, start next hand
+        if (game.phase === 'scoring' && game.scores.team1 < 21 && game.scores.team2 < 21) {
+          game.startNewHand();
+        }
+        
+        console.log(`After hand ${handsPlayed}: Team1=${game.scores.team1}, Team2=${game.scores.team2}`);
+      }
+      
+      console.log('=== GAME COMPLETE ===');
+      console.log(`Total hands played: ${handsPlayed}`);
+      console.log(`Final scores: Team1=${game.scores.team1}, Team2=${game.scores.team2}`);
+      console.log(`Winner: ${game.scores.team1 >= 21 ? 'Team1' : 'Team2'}`);
+      
+      // Send final game state to all players
+      const room = gameRooms.get(req.params.roomId);
+      room.players.forEach((player, index) => {
+        const playerGameState = game.getPlayerGameState(index);
+        io.to(player.id).emit('gameStateUpdate', playerGameState);
+      });
+      
+      res.json({ 
+        success: true, 
+        handsPlayed: handsPlayed,
+        finalScores: game.scores,
+        winner: game.scores.team1 >= 21 ? 'Team1' : 'Team2',
+        phase: game.phase
+      });
+      
+    } catch (error) {
+      console.error('Error in complete-game:', error);
+      res.json({ error: error.message });
+    }
+  });
