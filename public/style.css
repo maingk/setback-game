@@ -721,8 +721,9 @@ body::before {
 .scoring-breakdown {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
-    padding: 15px;
+    padding: 20px;
     margin-bottom: 15px;
+    line-height: 1.4;
 }
 
 .scoring-breakdown h4 {
@@ -736,30 +737,61 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 8px;
 }
 
 .point-line:last-child {
     border-bottom: none;
 }
 
-.point-name {
-    font-weight: bold;
-    flex: 1;
+.point-line:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
 }
 
+/* Grid layout for points */
+.points-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px 25px;
+    margin-bottom: 20px;
+}
+
+.point-item {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.point-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.point-name {
+    font-weight: bold;
+    font-size: 1em;
+    color: #FFD700;
+}
+
+
 .point-detail {
-    flex: 2;
-    text-align: center;
     font-style: italic;
     color: #ccc;
+    font-size: 0.85em;
+    line-height: 1.2;
+    text-align: left;
 }
 
 .point-winner {
-    flex: 1;
-    text-align: right;
     font-weight: bold;
+    font-size: 0.9em;
 }
 
 .point-winner.team1 {
@@ -775,8 +807,8 @@ body::before {
     justify-content: space-around;
     background: rgba(255, 215, 0, 0.2);
     border-radius: 8px;
-    padding: 10px;
-    margin-top: 15px;
+    padding: 15px 10px;
+    margin-top: 20px;
     border: 1px solid #FFD700;
 }
 
@@ -785,12 +817,13 @@ body::before {
 }
 
 .team-total h5 {
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     color: #FFD700;
+    font-size: 1em;
 }
 
 .team-total .total-points {
-    font-size: 1.5em;
+    font-size: 1.8em;
     font-weight: bold;
 }
 
@@ -817,11 +850,12 @@ body::before {
 }
 
 .bid-result {
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
     text-align: center;
     font-weight: bold;
+    font-size: 1.1em;
 }
 
 .bid-result.bid-made {
@@ -833,5 +867,13 @@ body::before {
 .bid-result.bid-failed {
     background: rgba(231, 76, 60, 0.2);
     border: 1px solid #e74c3c;
-    color: #e74c3c;
+    color: white;
+}
+
+/* Responsive: single column on small screens */
+@media (max-width: 768px) {
+    .points-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
 }
