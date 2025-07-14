@@ -877,3 +877,30 @@ body::before {
         gap: 10px;
     }
 }
+
+.game-over-info {
+    background: rgba(255, 215, 0, 0.3);
+    border: 2px solid #FFD700;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.game-over-info h4 {
+    color: #FFD700;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.game-over-info p {
+    margin: 8px 0;
+    font-size: 1.1em;
+}
+
+.game-over-info .winner {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #FFD700;
+    margin-top: 15px;
+}

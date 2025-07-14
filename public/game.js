@@ -480,7 +480,97 @@ class SetbackGame {
     </div>
 `;
         
+displayGameOverScoring() {
+    const breakdown = document.getElementById('scoringBreakdown');
+    const nextHandBtn = document.getElementById('nextHandBtn');
+    
+    const scoringData = this.gameState.scoringBreakdown || {};
+    const bidResult = this.gameState.bidResult || null;
+    
+    // Same scoring display as regular hands
+    breakdown.innerHTML = `
+        ${bidResult ? `
+            <div class="bid-result ${bidResult.success ? 'bid-made' : 'bid-failed'}">
+                <strong>${bidResult.message}</strong>
+            </div>
+        ` : ''}
         
+        <div class="points-grid">
+            <div class="point-item">
+                <div class="point-header">
+                    <div class="point-name">High:</div>
+                    <div class="point-winner ${scoringData.high?.winner || ''}">${scoringData.high ? this.getTeamName(scoringData.high.winner) : 'None'}</div>
+                </div>
+                <div class="point-detail">${scoringData.high?.detail || 'No trump played'}</div>
+            </div>
+            
+            <div class="point-item">
+                <div class="point-header">
+                    <div class="point-name">Low:</div>
+                    <div class="point-winner ${scoringData.low?.winner || ''}">${scoringData.low ? this.getTeamName(scoringData.low.winner) : 'None'}</div>
+                </div>
+                <div class="point-detail">${scoringData.low?.detail || 'No trump played'}</div>
+            </div>
+            
+            <div class="point-item">
+                <div class="point-header">
+                    <div class="point-name">Jack:</div>
+                    <div class="point-winner ${scoringData.jack?.winner || ''}">${scoringData.jack ? this.getTeamName(scoringData.jack.winner) : 'None'}</div>
+                </div>
+                <div class="point-detail">${scoringData.jack?.detail || 'Jack of trump not played'}</div>
+            </div>
+            
+            <div class="point-item">
+                <div class="point-header">
+                    <div class="point-name">Off-Jack:</div>
+                    <div class="point-winner ${scoringData.offJack?.winner || ''}">${scoringData.offJack ? this.getTeamName(scoringData.offJack.winner) : 'None'}</div>
+                </div>
+                <div class="point-detail">${scoringData.offJack?.detail || 'Off-jack not played'}</div>
+            </div>
+            
+            <div class="point-item">
+                <div class="point-header">
+                    <div class="point-name">Joker:</div>
+                    <div class="point-winner ${scoringData.joker?.winner || ''}">${scoringData.joker ? this.getTeamName(scoringData.joker.winner) : 'None'}</div>
+                </div>
+                <div class="point-detail">${scoringData.joker?.detail || 'Joker not played'}</div>
+            </div>
+            
+            <div class="point-item">
+                <div class="point-header">
+                    <div class="point-name">Game:</div>
+                    <div class="point-winner ${scoringData.game?.winner || ''}">${scoringData.game ? this.getTeamName(scoringData.game.winner) : 'None'}</div>
+                </div>
+                <div class="point-detail">${scoringData.game?.detail || 'Most game points'}</div>
+            </div>
+        </div>
+        
+        <div class="scoring-totals">
+            <div class="team-total">
+                <h5>Me & My Uncle</h5>
+                <div class="total-points team1">${this.gameState.handScores?.team1 || 0}</div>
+            </div>
+            <div class="team-total">
+                <h5>West Texas Cowboys</h5>
+                <div class="total-points team2">${this.gameState.handScores?.team2 || 0}</div>
+            </div>
+        </div>
+        
+        <div class="game-over-info">
+            <h4>🎉 Final Scores 🎉</h4>
+            <p><strong>Me & My Uncle:</strong> ${this.gameState.scores.team1} points</p>
+            <p><strong>West Texas Cowboys:</strong> ${this.gameState.scores.team2} points</p>
+            <p class="winner">🏆 ${this.gameState.scores.team1 >= 21 ? 'Me & My Uncle' : 'West Texas Cowboys'} Wins! 🏆</p>
+        </div>
+    `;
+    
+    // Change button to "Start New Game"
+    nextHandBtn.textContent = 'Start New Game';
+    nextHandBtn.onclick = () => {
+        // Reload the page to start fresh
+        window.location.reload();
+    };
+}    
          
             
           
@@ -649,8 +739,10 @@ class SetbackGame {
                 this.showMessage('Hand complete! Check the scoring breakdown.', 'info');
                 break;
             case 'game_over':
+                // Show scoring display for final hand
+                scoringDisplay.style.display = 'block';
+                this.displayGameOverScoring();
                 this.showMessage('Game Over!', 'success');
-                this.displayGameResults();
                 break;
         }
     }
