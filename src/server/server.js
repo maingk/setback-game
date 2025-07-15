@@ -67,6 +67,26 @@ io.on('connection', (socket) => {
     }
   });
 
+// Add this with the other socket.on event handlers
+socket.on('chatMessage', (data) => {
+    const room = gameRooms.get(socket.roomId);
+    if (!room) return;
+    
+    // Find the player who sent the message
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
+    
+    console.log(`Chat message from ${player.name}: ${data.message}`);
+    
+    // Broadcast message to all players in the room
+    io.to(socket.roomId).emit('chatMessage', {
+        player: player.name,
+        message: data.message,
+        timestamp: new Date().toLocaleTimeString()
+    });
+});
+
+
   // Handle player ready state
   socket.on('playerReady', () => {
     const room = gameRooms.get(socket.roomId);

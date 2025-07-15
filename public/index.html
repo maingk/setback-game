@@ -85,8 +85,27 @@
                     </div>
                     
                     <div class="game-messages-sidebar">
-                        <h4>Game Activity</h4>
-                        <div class="game-messages" id="gameMessages"></div>
+                        <!-- Game Info section (Trump, Bid, Dealer) -->
+                        
+                        <!-- ADD CHAT SECTION HERE -->
+                        <div class="chat-section">
+                            <h3>Chat</h3>
+                            <div class="chat-messages" id="chatMessages">
+                                <!-- Messages will appear here -->
+                            </div>
+                            <div class="chat-input">
+                                <input type="text" id="chatInput" placeholder="Type your message..." maxlength="100">
+                                <button id="chatSendBtn">Send</button>
+                            </div>
+                        </div>
+                        
+                        <!-- KEEP EXISTING GAME MESSAGES -->
+                        <div class="game-messages">
+                            <h3>Game Activity</h3>
+                            <div id="messageArea">
+                                <!-- Existing game messages stay here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
                 

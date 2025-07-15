@@ -12,6 +12,7 @@ class SetbackGame {
     
     init() {
         this.socket = io();
+        this.initializeChat();
         this.setupSocketListeners();
         this.setupUIEventListeners();
     }
@@ -259,6 +260,65 @@ class SetbackGame {
         // Show/hide game sections based on phase
         this.updateGamePhase();
     }
+
+    initializeChat() {
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        
+        // Send message on button click
+        chatSendBtn.addEventListener('click', () => {
+            this.sendChatMessage();
+        });
+        
+        // Send message on Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendChatMessage();
+            }
+        });
+        
+        // Listen for incoming chat messages
+        this.socket.on('chatMessage', (data) => {
+            this.displayChatMessage(data);
+        });
+    }
+    
+    sendChatMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const message = chatInput.value.trim();
+        
+        if (message && message.length > 0) {
+            // Send to server
+            this.socket.emit('chatMessage', {
+                message: message,
+                player: this.playerName
+            });
+            
+            // Clear input
+            chatInput.value = '';
+        }
+    }
+    
+    displayChatMessage(data) {
+        const chatMessages = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message';
+        
+        // Get player's team for color coding
+        const player = this.gameState.players.find(p => p.name === data.player);
+        const teamClass = player ? player.team : '';
+        
+        messageDiv.innerHTML = `
+            <span class="chat-player ${teamClass}">${data.player}:</span>
+            <span class="chat-text">${data.message}</span>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        
+        // Auto-scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
     getTeamName(team) {
         return team === 'team1' ? 'Me & My Uncle' : 'West Texas Cowboys';
     }
