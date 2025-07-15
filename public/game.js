@@ -883,7 +883,7 @@ if (window.location.search.includes('autotest')) {
             const randomName = playerNames[Math.floor(Math.random() * playerNames.length)] + Math.floor(Math.random() * 1000);
             
             document.getElementById('playerName').value = randomName;
-            document.getElementById('roomId').value = 'TEST';
+            document.getElementById('roomId').value = 'SPRADLIN';
             
             // Auto-click join
             document.getElementById('joinGameBtn').click();

@@ -6,7 +6,7 @@
 
 body {
     font-family: Arial, sans-serif;
-    background-image: url('/images/saloon-bg.PNG');
+    background-image: url('/images/spradlins.PNG');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -77,6 +77,21 @@ body::before {
 
 .login-form input::placeholder {
     color: #666;
+
+    .login-form select {
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    
+    .login-form select option {
+        background: white;
+        color: #333;
+    }    
 }
 
 .login-form button {
