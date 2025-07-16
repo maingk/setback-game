@@ -184,14 +184,31 @@ socket.on('chatMessage', (data) => {
 
   // Handle card playing
   socket.on('playCard', (cardIndex) => {
+    console.log('=== RECEIVED PLAYCARD EVENT ===');
+    console.log('cardIndex:', cardIndex);
+    console.log('socket.roomId:', socket.roomId);
+    
     try {
         const room = gameRooms.get(socket.roomId);
-        if (!room || !room.game) return;
+        console.log('room found:', !!room);
+        console.log('game exists:', !!room?.game);
+        
+        if (!room || !room.game) {
+            console.log('ERROR: No room or game found');
+            return;
+        }
         
         const playerIndex = room.players.findIndex(p => p.id === socket.id);
-        if (playerIndex === -1) return;
+        console.log('playerIndex:', playerIndex);
         
+        if (playerIndex === -1) {
+            console.log('ERROR: Player not found in room');
+            return;
+        }
+        
+        console.log('About to call game.playCard...');
         const gameState = room.game.playCard(playerIndex, cardIndex);
+        console.log('game.playCard completed successfully');
         
         // CHECK FOR TRICK COMPLETION
         if (room.game.lastTrickWinner) {
@@ -205,10 +222,13 @@ socket.on('chatMessage', (data) => {
             const playerGameState = room.game.getPlayerGameState(index);
             io.to(player.id).emit('gameStateUpdate', playerGameState);
         });
+        
+        console.log('=== PLAYCARD EVENT COMPLETED ===');
     } catch (error) {
+        console.log('ERROR in playCard:', error.message);
         socket.emit('gameError', error.message);
     }
-});
+});  
 
   // Handle starting next hand
 socket.on('nextHand', () => {
