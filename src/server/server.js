@@ -184,30 +184,31 @@ socket.on('chatMessage', (data) => {
 
   // Handle card playing
   socket.on('playCard', (cardIndex) => {
-    const game = activeGames.get(socket.roomId);
-    if (game) {
-      try {
+    try {
         const room = gameRooms.get(socket.roomId);
+        if (!room || !room.game) return;
+        
         const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        if (playerIndex === -1) return;
         
-        if (playerIndex === -1) {
-          socket.emit('gameError', 'Player not found');
-          return;
+        const gameState = room.game.playCard(playerIndex, cardIndex);
+        
+        // CHECK FOR TRICK COMPLETION
+        if (room.game.lastTrickWinner) {
+            console.log('🎉 Emitting trickWinner event:', room.game.lastTrickWinner);
+            io.to(socket.roomId).emit('trickWinner', room.game.lastTrickWinner);
+            room.game.lastTrickWinner = null; // Clear after emitting
         }
-        
-        const gameState = game.playCard(playerIndex, cardIndex);
         
         // Send updated game state to all players
         room.players.forEach((player, index) => {
-          const playerGameState = game.getPlayerGameState(index);
-          io.to(player.id).emit('gameStateUpdate', playerGameState);
+            const playerGameState = room.game.getPlayerGameState(index);
+            io.to(player.id).emit('gameStateUpdate', playerGameState);
         });
-        
-      } catch (error) {
+    } catch (error) {
         socket.emit('gameError', error.message);
-      }
     }
-  });
+});
 
   // Handle starting next hand
 socket.on('nextHand', () => {
@@ -293,24 +294,39 @@ app.get('/health', (req, res) => {
 // =============================================================================
 
 app.post('/debug/autoplay/:roomId', (req, res) => {
-  const game = activeGames.get(req.params.roomId);
-  if (!game) {
-    return res.json({ error: 'Game not found' });
-  }
-  
-  const gameState = game.autoPlay();
-  if (gameState) {
-    // Send updated game state to all players
-    const room = gameRooms.get(req.params.roomId);
-    room.players.forEach((player, index) => {
-      const playerGameState = game.getPlayerGameState(index);
-      io.to(player.id).emit('gameStateUpdate', playerGameState);
-    });
-    res.json({ success: true, phase: gameState.phase });
-  } else {
-    res.json({ error: 'No auto-play available for current phase' });
-  }
-});
+    const game = activeGames.get(req.params.roomId);
+    if (!game) {
+      return res.json({ error: 'Game not found' });
+    }
+    
+    try {
+      const gameState = game.autoPlay(); // Use only autoPlay (which calls autoPlayCard internally)
+      
+      // CHECK FOR TRICK COMPLETION
+      if (game.lastTrickWinner) {
+        console.log('🎉 Auto-play trick winner:', game.lastTrickWinner);
+        const room = gameRooms.get(req.params.roomId);
+        if (room) {
+            io.to(req.params.roomId).emit('trickWinner', game.lastTrickWinner);
+        }
+        game.lastTrickWinner = null; // Clear after emitting
+      }
+      
+      if (gameState) {
+        // Send updated game state to all players
+        const room = gameRooms.get(req.params.roomId);
+        room.players.forEach((player, index) => {
+          const playerGameState = game.getPlayerGameState(index);
+          io.to(player.id).emit('gameStateUpdate', playerGameState);
+        });
+        res.json({ success: true, phase: gameState.phase });
+      } else {
+        res.json({ error: 'No auto-play available for current phase' });
+      }
+    } catch (error) {
+      res.json({ error: error.message });
+    }
+  });
 
 app.post('/debug/complete-bidding/:roomId', (req, res) => {
   const game = activeGames.get(req.params.roomId);

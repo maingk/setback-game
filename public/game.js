@@ -66,6 +66,12 @@ class SetbackGame {
             this.updateGameDisplay();
         });
 
+         // ADD THIS NEW LISTENER
+        this.socket.on('trickWinner', (data) => {
+        console.log('🏆 Received trickWinner event:', data);
+        this.showTrickWinnerAnimation(data.winnerName, data.trickNumber);
+        });
+
         this.socket.on('gameError', (message) => {
             this.showMessage(message, 'error');
         });
@@ -292,18 +298,25 @@ class SetbackGame {
     }
 
     checkForTrickWinner() {
-        // Only check during playing phase when we have a full trick
+        console.log('=== checkForTrickWinner called ===');
+        console.log('Game phase:', this.gameState.phase);
+        console.log('Current trick length:', this.gameState.currentTrick?.length);
+        
+        // TRIGGER ANIMATION WHEN WE HIT 4 CARDS
         if (this.gameState.phase === 'playing' && 
             this.gameState.currentTrick && 
             this.gameState.currentTrick.length === 4) {
             
-            // Check if this is a new trick completion (avoid duplicate animations)
+            console.log('🎉 FULL TRICK DETECTED!', this.gameState.currentTrick);
+            
+            // Check if this is a new trick completion
             const trickKey = this.gameState.currentTrick.map(p => p.playerName + p.card.suit + p.card.rank).join('');
             if (this.lastTrickKey !== trickKey) {
                 this.lastTrickKey = trickKey;
                 
-                // Determine trick winner (simple: last player in the trick for now)
+                // Determine trick winner
                 const winner = this.gameState.currentTrick[this.gameState.currentTrick.length - 1];
+                console.log('🏆 Showing animation for winner:', winner.playerName);
                 this.showTrickWinnerAnimation(winner.playerName, this.gameState.trickNumber || 1);
             }
         }

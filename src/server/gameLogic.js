@@ -353,6 +353,16 @@ class SetbackGame {
         // Determine trick winner
         const trickWinner = this.determineTrickWinner();
         const winningTeam = this.players[trickWinner].team;
+
+        // TRIGGER ANIMATION - Add this section
+    const winnerName = this.players[trickWinner].name;
+    console.log(`🏆 Trick ${this.trickNumber} completed! Winner: ${winnerName}`);
+    
+    // Store trick winner info for server to emit
+    this.lastTrickWinner = {
+        winnerName: winnerName,
+        trickNumber: this.trickNumber
+    };
         
         // Add trick to completed tricks
         this.trick.push({
