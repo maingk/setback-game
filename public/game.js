@@ -6,6 +6,7 @@ class SetbackGame {
         this.roomId = '';
         this.currentScreen = 'login';
         this.gameState = null;
+        this.lastTrickKey = null;
         
         this.init();
     }
@@ -189,9 +190,30 @@ class SetbackGame {
     }
     
     showMessage(message, type = 'info') {
-        const messagesContainer = this.currentScreen === 'lobby' 
-            ? document.getElementById('lobbyMessages')
-            : document.getElementById('gameMessages');
+        // Try to find any available message container
+        const possibleContainers = [
+            'messageArea',      // Game screen messages
+            'gameMessages',     // Alternative game messages
+            'lobbyMessages',    // Lobby messages
+            'chatMessages'      // Chat as fallback
+        ];
+        
+        let messagesContainer = null;
+        
+        for (const containerId of possibleContainers) {
+            messagesContainer = document.getElementById(containerId);
+            if (messagesContainer) {
+                console.log(`Using message container: ${containerId}`);
+                break;
+            }
+        }
+        
+        // If still no container found, just log to console and continue
+        if (!messagesContainer) {
+            console.log(`Message (${type}): ${message}`);
+            console.log('Available elements:', document.querySelectorAll('[id*="message"], [id*="Message"]'));
+            return;
+        }
         
         const messageDiv = document.createElement('div');
         messageDiv.textContent = message;
@@ -257,8 +279,45 @@ class SetbackGame {
         // Update trick area
         this.displayTrickArea();
 
+        // Check for trick winner
+        this.checkForTrickWinner();
+
         // Show/hide game sections based on phase
         this.updateGamePhase();
+    }
+
+    checkForTrickWinner() {
+        // Only check during playing phase when we have a full trick
+        if (this.gameState.phase === 'playing' && 
+            this.gameState.currentTrick && 
+            this.gameState.currentTrick.length === 4) {
+            
+            // Check if this is a new trick completion (avoid duplicate animations)
+            const trickKey = this.gameState.currentTrick.map(p => p.playerName + p.card.suit + p.card.rank).join('');
+            if (this.lastTrickKey !== trickKey) {
+                this.lastTrickKey = trickKey;
+                
+                // Determine trick winner (simple: last player in the trick for now)
+                const winner = this.gameState.currentTrick[this.gameState.currentTrick.length - 1];
+                this.showTrickWinnerAnimation(winner.playerName, this.gameState.trickNumber || 1);
+            }
+        }
+    }
+
+    showTrickWinnerAnimation(winnerName, trickNumber) {
+        const notification = document.getElementById('trickWinnerNotification');
+        const text = document.getElementById('trickWinnerText');
+        
+        // Set the winner text
+        text.textContent = `${winnerName} wins trick ${trickNumber}!`;
+        
+        // Show the notification
+        notification.classList.remove('hidden');
+        
+        // Hide after animation completes (3 seconds)
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 3000);
     }
 
     initializeChat() {

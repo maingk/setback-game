@@ -77,21 +77,23 @@ body::before {
 
 .login-form input::placeholder {
     color: #666;
+}
 
-    .login-form select {
-        padding: 15px;
-        border: none;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        font-size: 16px;
-        cursor: pointer;
-    }
-    
-    .login-form select option {
-        background: white;
-        color: #333;
-    }    
+.login-form select {
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+    height: 50px;
+    box-sizing: border-box;
+}
+
+.login-form select option {
+    background: white;
+    color: #333;
 }
 
 .login-form button {
@@ -1001,4 +1003,46 @@ body::before {
 .chat-input button:disabled {
     background: #7f8c8d;
     cursor: not-allowed;
+}
+
+/* Trick Winner Notification */
+.trick-winner-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.notification-content {
+    background: rgba(255, 215, 0, 0.95);
+    color: #000;
+    padding: 20px 30px;
+    border-radius: 12px;
+    font-size: 1.4em;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    border: 2px solid #FFD700;
+    animation: trickWinnerSlide 3s ease-in-out;
+}
+
+@keyframes trickWinnerSlide {
+    0% {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    20%, 80% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+}
+
+.trick-winner-notification.hidden {
+    display: none;
 }
