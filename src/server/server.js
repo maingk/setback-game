@@ -187,6 +187,7 @@ socket.on('chatMessage', (data) => {
     console.log('=== RECEIVED PLAYCARD EVENT ===');
     console.log('cardIndex:', cardIndex);
     console.log('socket.roomId:', socket.roomId);
+    console.log('Available rooms:', Array.from(gameRooms.keys()));
     
     try {
         const room = gameRooms.get(socket.roomId);
