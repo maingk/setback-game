@@ -246,6 +246,10 @@ class SetbackGame {
     updateGameDisplay() {
         if (!this.gameState) return;
 
+        console.log('=== updateGameDisplay called ===');
+        console.log('Game phase:', this.gameState.phase);
+        console.log('Current trick length:', this.gameState.currentTrick?.length);
+
         // Update scores
         document.getElementById('team1Score').textContent = this.gameState.scores.team1;
         document.getElementById('team2Score').textContent = this.gameState.scores.team2;
@@ -280,6 +284,7 @@ class SetbackGame {
         this.displayTrickArea();
 
         // Check for trick winner
+        console.log('About to call checkForTrickWinner...');
         this.checkForTrickWinner();
 
         // Show/hide game sections based on phase
