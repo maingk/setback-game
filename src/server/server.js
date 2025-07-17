@@ -187,16 +187,15 @@ socket.on('chatMessage', (data) => {
     console.log('=== RECEIVED PLAYCARD EVENT ===');
     console.log('cardIndex:', cardIndex);
     console.log('socket.roomId:', socket.roomId);
-    console.log('Available rooms:', Array.from(gameRooms.keys()));
     
     try {
         const room = gameRooms.get(socket.roomId);
-        console.log('room found:', !!room);
-        console.log('room contents:', room);
-        console.log('room.game exists:', !!room?.game);
-        console.log('activeGames has this room:', activeGames.has(socket.roomId));
+        const game = activeGames.get(socket.roomId); // GET GAME FROM activeGames
         
-        if (!room || !room.game) {
+        console.log('room found:', !!room);
+        console.log('game found:', !!game);
+        
+        if (!room || !game) {
             console.log('ERROR: No room or game found');
             return;
         }
@@ -210,19 +209,19 @@ socket.on('chatMessage', (data) => {
         }
         
         console.log('About to call game.playCard...');
-        const gameState = room.game.playCard(playerIndex, cardIndex);
+        const gameState = game.playCard(playerIndex, cardIndex); // USE game NOT room.game
         console.log('game.playCard completed successfully');
         
         // CHECK FOR TRICK COMPLETION
-        if (room.game.lastTrickWinner) {
-            console.log('🎉 Emitting trickWinner event:', room.game.lastTrickWinner);
-            io.to(socket.roomId).emit('trickWinner', room.game.lastTrickWinner);
-            room.game.lastTrickWinner = null; // Clear after emitting
+        if (game.lastTrickWinner) { // USE game NOT room.game
+            console.log('🎉 Emitting trickWinner event:', game.lastTrickWinner);
+            io.to(socket.roomId).emit('trickWinner', game.lastTrickWinner);
+            game.lastTrickWinner = null;
         }
         
         // Send updated game state to all players
         room.players.forEach((player, index) => {
-            const playerGameState = room.game.getPlayerGameState(index);
+            const playerGameState = game.getPlayerGameState(index); // USE game NOT room.game
             io.to(player.id).emit('gameStateUpdate', playerGameState);
         });
         
