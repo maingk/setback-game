@@ -192,7 +192,9 @@ socket.on('chatMessage', (data) => {
     try {
         const room = gameRooms.get(socket.roomId);
         console.log('room found:', !!room);
-        console.log('game exists:', !!room?.game);
+        console.log('room contents:', room);
+        console.log('room.game exists:', !!room?.game);
+        console.log('activeGames has this room:', activeGames.has(socket.roomId));
         
         if (!room || !room.game) {
             console.log('ERROR: No room or game found');
