@@ -444,7 +444,11 @@ class SetbackGame {
         // Handle joker specially
         if (card.rank === 'JOKER') {
             cardDiv.classList.add('joker');
-            cardDiv.innerHTML = '<div>JOKER</div>';
+            cardDiv.innerHTML = `
+                <div class="joker-container">
+                    <img src="/images/jerry-joker.png" alt="Joker" class="joker-image">
+                </div>
+            `;
         } else {
             // Create standard playing card layout
             const suitSymbols = {
@@ -796,7 +800,11 @@ displayGameOverScoring() {
         // Handle joker specially
         if (card.rank === 'JOKER') {
             cardDiv.classList.add('joker');
-            cardDiv.innerHTML = '<div>JOKER</div>';
+            cardDiv.innerHTML = `
+                <div class="joker-container">
+                    <img src="/images/jerry-joker.png" alt="Joker" class="joker-image">
+                </div>
+            `;
         } else {
             // Create standard playing card layout
             const suitSymbols = {
