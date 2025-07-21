@@ -445,8 +445,7 @@ class SetbackGame {
         if (card.rank === 'JOKER') {
             cardDiv.classList.add('joker');
             cardDiv.innerHTML = `
-                <div class="joker-container">
-                    <img src="/images/jerry-joker.png" alt="Joker" class="joker-image">
+                <img src="/images/jerry-joker.png" alt="Joker" class="joker-full-image">
                 </div>
             `;
         } else {
@@ -801,8 +800,7 @@ displayGameOverScoring() {
         if (card.rank === 'JOKER') {
             cardDiv.classList.add('joker');
             cardDiv.innerHTML = `
-                <div class="joker-container">
-                    <img src="/images/jerry-joker.png" alt="Joker" class="joker-image">
+                    <img src="/images/jerry-joker.png" alt="Joker" class="joker-full-image">
                 </div>
             `;
         } else {
